@@ -27,17 +27,17 @@ type Program struct {
 func New() (p *Program, err error) {
 	p = new(Program)
 
+	p.ver, err = ver.New()
+	if err != nil {
+		return nil, err
+	}
+
 	p.cfgFilePath, err = p.getConfigurationFilePath()
 	if err != nil {
 		return nil, err
 	}
 
 	p.cfg, err = config.New(p.cfgFilePath)
-	if err != nil {
-		return nil, err
-	}
-
-	p.ver, err = ver.New()
 	if err != nil {
 		return nil, err
 	}
