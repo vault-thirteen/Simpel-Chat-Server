@@ -31,6 +31,7 @@ func New() (p *Program, err error) {
 	if err != nil {
 		return nil, err
 	}
+	p.showIntro("")
 
 	p.cfgFilePath, err = p.getConfigurationFilePath()
 	if err != nil {
@@ -54,8 +55,6 @@ func (p *Program) getConfigurationFilePath() (cfgFilePath string, err error) {
 }
 
 func (p *Program) Run() (err error) {
-	p.showIntro("")
-
 	if p.cfg.LoadDlls {
 		p.dc = win32.NewDllController()
 
