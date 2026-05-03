@@ -27,7 +27,7 @@ type Program struct {
 func New() (p *Program, err error) {
 	p = new(Program)
 
-	p.ver, err = ver.New()
+	p.ver, err = ver.New(false)
 	if err != nil {
 		return nil, err
 	}

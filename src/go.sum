@@ -19,8 +19,8 @@ github.com/valord577/mailx v0.6.20240511 h1:ZWVhvp+4p2xW5P+wWAAXdNz+qF46OcZewJu2
 github.com/valord577/mailx v0.6.20240511/go.mod h1:aGgPawsLOerLCxf7XU9jnke7B0lyp5Bl5JhsufWBwS0=
 github.com/vault-thirteen/JSON-RPC-M1 v0.3.23 h1:ARDY4JO9ir4vyndiZl0jj36ZoAiGf2P9f7FEIcPlxaM=
 github.com/vault-thirteen/JSON-RPC-M1 v0.3.23/go.mod h1:QZccX0nXhITeWxIcik2OkNl1l2oi6UyT7Od5VWANW/0=
-github.com/vault-thirteen/auxie v0.36.2 h1:PpSQvIpNI2gD2irXK2oyJKaTDITCHehUFmNAv8skqkk=
-github.com/vault-thirteen/auxie v0.36.2/go.mod h1:T+vPjd/GMOIXxWJFSvv5i1c5Tcub4xSq51LUbf/g924=
+github.com/vault-thirteen/auxie v0.36.3 h1:OyZApZWf8ECEsj1g8RGzP1EjNjkyw6DO0NwQ2xT1LDU=
+github.com/vault-thirteen/auxie v0.36.3/go.mod h1:T+vPjd/GMOIXxWJFSvv5i1c5Tcub4xSq51LUbf/g924=
 golang.org/x/sys v0.43.0 h1:Rlag2XtaFTxp19wS8MXlJwTvoh8ArU6ezoyFsMyCTNI=
 golang.org/x/sys v0.43.0/go.mod h1:4GL1E5IUh+htKOUEOaiffhrAeqysfVGipDYzABqnCmw=
 golang.org/x/term v0.42.0 h1:UiKe+zDFmJobeJ5ggPwOshJIVt6/Ft0rcfrXZDLWAWY=
