@@ -6,6 +6,7 @@ import (
 	"time"
 
 	jrm1 "github.com/vault-thirteen/JSON-RPC-M1"
+	ver "github.com/vault-thirteen/auxie/Versioneer/classes/Versioneer"
 	"gorm.io/gorm"
 
 	"github.com/vault-thirteen/Simpel-Chat-Server/src/Chat/adc"
@@ -30,29 +31,38 @@ import (
 )
 
 type RpcController struct {
+	chatFamilyName   string
+	ver              *ver.Versioneer
 	db               *database.Database
 	mailer           *mailer.Mailer
 	generator        *generator.Generator
 	adc              *adc.ActiveDataController
 	der              *der.DatabaseErrorReporter
 	chatUserSettings *settings.ChatUserSettings
+	chatServerName   string
 }
 
 func NewRpcController(
+	chatFamilyName string,
+	ver *ver.Versioneer,
 	db *database.Database,
 	mailer *mailer.Mailer,
 	generator *generator.Generator,
 	adc *adc.ActiveDataController,
 	der *der.DatabaseErrorReporter,
 	chatUserSettings *settings.ChatUserSettings,
+	chatServerName string,
 ) (rc *RpcController) {
 	rc = &RpcController{
+		chatFamilyName:   chatFamilyName,
+		ver:              ver,
 		db:               db,
 		mailer:           mailer,
 		generator:        generator,
 		adc:              adc,
 		der:              der,
 		chatUserSettings: chatUserSettings,
+		chatServerName:   chatServerName,
 	}
 
 	return rc
@@ -60,7 +70,11 @@ func NewRpcController(
 
 func (rc *RpcController) GetRpcFunctions() []jrm1.RpcFunction {
 	return []jrm1.RpcFunction{
+		// Ping.
 		rc.Ping,
+
+		// Version & Name.
+		rc.Version,
 
 		// Auth functions.
 		rc.RegisterUser1,
@@ -105,10 +119,21 @@ func (rc *RpcController) GetRpcFunctions() []jrm1.RpcFunction {
 // Ping.
 
 func (rc *RpcController) Ping(_ *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
-	result = rpcm.PingResult{
+	return rpcm.PingResult{
 		Success: rpcm.Success{OK: true},
-	}
-	return result, nil
+	}, nil
+}
+
+// Version & Name.
+
+func (rc *RpcController) Version(_ *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
+	return rpcm.VersionResult{
+		ServerName:        rc.chatServerName,
+		ChatFamily:        rc.chatFamilyName,
+		AppName:           rc.ver.ProgramName(),
+		AppVersionText:    rc.ver.ProgramVersionString(),
+		GolangVersionText: rc.ver.GoVersion(),
+	}, nil
 }
 
 // Auth functions.

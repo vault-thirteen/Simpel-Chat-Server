@@ -8,6 +8,8 @@ import (
 	"os/signal"
 	"syscall"
 
+	ver "github.com/vault-thirteen/auxie/Versioneer/classes/Versioneer"
+
 	"github.com/vault-thirteen/Simpel-Chat-Server/src/Chat"
 	"github.com/vault-thirteen/Simpel-Chat-Server/src/Program/Configuration"
 	"github.com/vault-thirteen/Simpel-Chat-Server/src/helper"
@@ -19,6 +21,7 @@ type Program struct {
 	cfg         *config.Configuration
 	dc          *win32.DllController
 	chat        *chat.Chat
+	ver         *ver.Versioneer
 }
 
 func New() (p *Program, err error) {
@@ -30,6 +33,11 @@ func New() (p *Program, err error) {
 	}
 
 	p.cfg, err = config.New(p.cfgFilePath)
+	if err != nil {
+		return nil, err
+	}
+
+	p.ver, err = ver.New()
 	if err != nil {
 		return nil, err
 	}
@@ -46,6 +54,8 @@ func (p *Program) getConfigurationFilePath() (cfgFilePath string, err error) {
 }
 
 func (p *Program) Run() (err error) {
+	p.showIntro("")
+
 	if p.cfg.LoadDlls {
 		p.dc = win32.NewDllController()
 
@@ -66,7 +76,7 @@ func (p *Program) Run() (err error) {
 		}
 	}
 
-	p.chat, err = chat.NewChat(p.cfg.ChatSettingsFilePath)
+	p.chat, err = chat.NewChat(p.cfg.ChatSettingsFilePath, p.ver)
 	if err != nil {
 		return err
 	}
@@ -107,4 +117,10 @@ func (p *Program) waitForQuitSignalFromOS(shouldStop *chan bool) {
 			*shouldStop <- true
 		}
 	}
+}
+
+func (p *Program) showIntro(serviceName string) {
+	p.ver.ShowIntroText(serviceName)
+	p.ver.ShowComponentsInfoText()
+	fmt.Println()
 }

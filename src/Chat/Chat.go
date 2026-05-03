@@ -4,6 +4,8 @@ import (
 	"log"
 	"time"
 
+	ver "github.com/vault-thirteen/auxie/Versioneer/classes/Versioneer"
+
 	"github.com/vault-thirteen/Simpel-Chat-Server/src/Chat/adc"
 	"github.com/vault-thirteen/Simpel-Chat-Server/src/Chat/cleaner"
 	"github.com/vault-thirteen/Simpel-Chat-Server/src/Chat/controls"
@@ -19,20 +21,24 @@ import (
 	"github.com/vault-thirteen/Simpel-Chat-Server/src/helper"
 )
 
+const ChatFamilyName = "Simpel Chat"
+
 type Chat struct {
-	settings  *settings.ChatSettings
-	controls  *controls.Controls
-	generator *generator.Generator
-	database  *database.Database
-	mailer    *mailer.Mailer
-	adc       *adc.ActiveDataController
-	rpc       *rpc.RPC
-	server    *server.Server
-	watcher   *watcher.Watcher
-	cleaner   *cleaner.Cleaner
+	chatFamilyName string
+	ver            *ver.Versioneer
+	settings       *settings.ChatSettings
+	controls       *controls.Controls
+	generator      *generator.Generator
+	database       *database.Database
+	mailer         *mailer.Mailer
+	adc            *adc.ActiveDataController
+	rpc            *rpc.RPC
+	server         *server.Server
+	watcher        *watcher.Watcher
+	cleaner        *cleaner.Cleaner
 }
 
-func NewChat(settingsFilePath string) (c *Chat, err error) {
+func NewChat(settingsFilePath string, ver *ver.Versioneer) (c *Chat, err error) {
 	// Order of initialisation is very important !
 
 	if len(settingsFilePath) == 0 {
@@ -40,6 +46,10 @@ func NewChat(settingsFilePath string) (c *Chat, err error) {
 	}
 
 	c = new(Chat)
+
+	c.chatFamilyName = ChatFamilyName
+
+	c.ver = ver
 
 	c.settings, err = settings.GetChatSettingsFromFile(settingsFilePath)
 	if err != nil {
@@ -75,7 +85,7 @@ func NewChat(settingsFilePath string) (c *Chat, err error) {
 		return nil, err
 	}
 
-	c.rpc, err = rpc.NewRPC(c.database, c.mailer, c.generator, c.adc, der.NewDatabaseErrorReporter(cec), c.settings.Users)
+	c.rpc, err = rpc.NewRPC(c.chatFamilyName, c.ver, c.database, c.mailer, c.generator, c.adc, der.NewDatabaseErrorReporter(cec), c.settings.Users, c.settings.Server.Name)
 	if err != nil {
 		return nil, err
 	}

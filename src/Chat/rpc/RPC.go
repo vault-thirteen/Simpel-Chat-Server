@@ -2,6 +2,7 @@ package rpc
 
 import (
 	jrm1 "github.com/vault-thirteen/JSON-RPC-M1"
+	ver "github.com/vault-thirteen/auxie/Versioneer/classes/Versioneer"
 
 	"github.com/vault-thirteen/Simpel-Chat-Server/src/Chat/adc"
 	"github.com/vault-thirteen/Simpel-Chat-Server/src/Chat/database"
@@ -22,17 +23,20 @@ type RPC struct {
 }
 
 func NewRPC(
+	chatFamilyName string,
+	v *ver.Versioneer,
 	db *database.Database,
 	mailer *mailer.Mailer,
 	generator *generator.Generator,
 	adc *adc.ActiveDataController,
 	der *der.DatabaseErrorReporter,
 	chatUserSettings *settings.ChatUserSettings,
+	chatServerName string,
 ) (rpc *RPC, err error) {
 	rpc = new(RPC)
 
 	// Controller.
-	rpc.controller = NewRpcController(db, mailer, generator, adc, der, chatUserSettings)
+	rpc.controller = NewRpcController(chatFamilyName, v, db, mailer, generator, adc, der, chatUserSettings, chatServerName)
 
 	// Processor.
 	{

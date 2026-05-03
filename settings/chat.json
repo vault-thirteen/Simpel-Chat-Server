@@ -1,7 +1,7 @@
 {
   "settings": {
     "server": {
-      "name": "Server Name",
+      "name": "Freedom Chat Server",
       "hostName": "localhost",
       "portNumber": 2000,
       "certFile": "certificate\\server-cert.pem",

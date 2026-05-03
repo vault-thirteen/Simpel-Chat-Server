@@ -6,7 +6,7 @@ require (
 	github.com/go-sql-driver/mysql v1.10.0
 	github.com/valord577/mailx v0.6.20240511
 	github.com/vault-thirteen/JSON-RPC-M1 v0.3.23
-	github.com/vault-thirteen/auxie v0.35.0
+	github.com/vault-thirteen/auxie v0.36.2
 	golang.org/x/sys v0.43.0
 	golang.org/x/term v0.42.0
 	gorm.io/driver/mysql v1.6.0
