@@ -5,7 +5,7 @@ go 1.25.9
 require (
 	github.com/go-sql-driver/mysql v1.10.0
 	github.com/valord577/mailx v0.6.20240511
-	github.com/vault-thirteen/JSON-RPC-M1 v0.3.23
+	github.com/vault-thirteen/JSON-RPC-M1 v0.3.24
 	github.com/vault-thirteen/auxie v0.36.3
 	golang.org/x/sys v0.43.0
 	golang.org/x/term v0.42.0
