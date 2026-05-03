@@ -70,6 +70,31 @@ not make you waste free space on your storage drives, however the downside of
 it does not allow to save messages to persistent storage. This is done on 
 purpose. 
 
+## Installation
+
+1. Prepare your SSL certificates. 
+ 
+A script to create self-signed certificates is available in the `script` 
+folder.
+
+2. Build the project using the `build.bat` script.
+
+3. Copy files and folders from the created `_BUILD_` directory to your place.
+
+4. Get the executable binary file using the following command.
+
+> go install github.com/vault-thirteen/Simpel-Chat-Server/src@latest
+
+5. Replace the executable file created by build script by the file received 
+with `go install` command.
+
+6. Say "Thank you" to the developers of Go language for not fixing old bugs in 
+`go install` tool, for old bugs with versioning and many other old bugs in Go 
+language.
+
+**Important note**. Do not try to build the executable file locally. You will 
+see an old versioning bug and will be unable to use the server normally.
+
 ## Usage
 
 To start a server, compile the application and provide it with a path to the 
