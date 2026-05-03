@@ -1,0 +1,56 @@
+{
+  "settings": {
+    "server": {
+      "name": "Server Name",
+      "hostName": "localhost",
+      "portNumber": 2000,
+      "certFile": "certificate\\server-cert.pem",
+      "keyFile": "certificate\\server-key.pem"
+    },
+    "database": {
+      "type": "mysql",
+      "driverName": "mysql",
+      "networkType": "tcp",
+      "hostName": "localhost",
+      "portNumber": 3306,
+      "dbName": "test",
+      "dbUserName": "test",
+      "dbPassword": "test",
+      "allowNativePasswords": true,
+      "checkConnLiveness": true,
+      "maxAllowedPacket": 8000000,
+      "parameters": {
+        "parseTime": "true"
+      },
+      "useDataInitialisation": true
+    },
+    "mailer": {
+      "mailServerHostName": "smtp.yandex.com",
+      "mailServerPortNumber": 465,
+      "mailServerUserName": "test@yandex.com",
+      "mailServerPassword": "test",
+      "userAgent": "Mailer",
+      "sendStartupMessage": true
+    },
+    "message": {
+      "roomCountMax": 16,
+      "roomMessageCountMax": 255,
+      "messageSizeMax": 255
+    },
+    "users": {
+      "administratorIds": [
+        1
+      ],
+      "isRegistrationEnabled": true
+    },
+    "other": {
+      "requestIdLength": 8,
+      "verificationCodeLength": 6,
+      "junkCleanIntervalSec": 60,
+      "registrationRequestTtl": 300,
+      "sessionCountMax": 1024,
+      "tokenLength": 16,
+      "inactivityDurationMaxSec": 300
+    }
+  }
+}

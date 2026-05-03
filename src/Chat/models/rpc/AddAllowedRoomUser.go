@@ -1,0 +1,15 @@
+package rpc
+
+import (
+	"github.com/vault-thirteen/Simpel-Chat-Server/src/Chat/models/common"
+)
+
+type AddAllowedRoomUserParams struct {
+	Auth   *Auth           `json:"auth,omitempty"`
+	RoomId common.ObjectId `json:"roomId,omitempty"`
+	UserId common.ObjectId `json:"userId,omitempty"`
+}
+
+type AddAllowedRoomUserResult struct {
+	Success
+}
