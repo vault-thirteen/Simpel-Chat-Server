@@ -55,27 +55,30 @@ func NewServer(
 
 func (s *Server) router(rw http.ResponseWriter, req *http.Request) {
 	left, right, ok := strings.Cut(req.URL.Path, helper.UrlPathSeparator)
-	if ok {
-		if len(left) != 0 {
-			s.httpRespond_NotFound(rw)
-			return
-		}
-
-		switch right {
-		case helper.UrlPath_Api:
-			s.rp.ServeHTTP(rw, req)
-			return
-
-		default:
-			s.httpRespond_NotFound(rw)
-			return
-		}
+	if !ok {
+		s.httpRespond_BadRequest(rw)
+		return
 	}
 
-	s.httpRespond_NotFound(rw)
-	return
+	if len(left) != 0 {
+		s.httpRespond_NotFound(rw)
+		return
+	}
+
+	switch right {
+	case helper.UrlPath_Api:
+		s.rp.ServeHTTP(rw, req)
+		return
+
+	default:
+		s.httpRespond_NotFound(rw)
+		return
+	}
 }
 
+func (s *Server) httpRespond_BadRequest(rw http.ResponseWriter) {
+	rw.WriteHeader(http.StatusBadRequest)
+}
 func (s *Server) httpRespond_NotFound(rw http.ResponseWriter) {
 	rw.WriteHeader(http.StatusNotFound)
 }
