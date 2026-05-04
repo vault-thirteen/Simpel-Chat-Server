@@ -109,7 +109,7 @@ func NewChat(settingsFilePath string, ver *ver.Versioneer) (c *Chat, err error) 
 		}
 	}
 
-	return c, err
+	return c, nil
 }
 
 // Async.
