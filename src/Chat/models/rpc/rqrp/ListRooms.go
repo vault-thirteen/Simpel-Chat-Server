@@ -1,11 +1,12 @@
-package rpc
+package rqrp
 
 import (
 	rm "github.com/vault-thirteen/Simpel-Chat-Server/src/Chat/models/entities/persistent/room"
+	"github.com/vault-thirteen/Simpel-Chat-Server/src/Chat/models/rpc"
 )
 
 type ListRoomsParams struct {
-	Auth *Auth `json:"auth,omitempty"`
+	Auth *rpc.Auth `json:"auth,omitempty"`
 }
 
 type ListRoomsResult struct {

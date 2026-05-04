@@ -1,4 +1,4 @@
-package rpc
+package rqrp
 
 type RegisterUser1Params struct {
 	EMailAddress string `json:"email"`

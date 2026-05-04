@@ -1,4 +1,8 @@
-package rpc
+package rqrp
+
+import (
+	"github.com/vault-thirteen/Simpel-Chat-Server/src/Chat/models/rpc"
+)
 
 type LogIn2Params struct {
 	EMailAddress     string `json:"email"`
@@ -9,5 +13,5 @@ type LogIn2Params struct {
 
 type LogIn2Result struct {
 	Token string `json:"token"`
-	Success
+	rpc.Success
 }

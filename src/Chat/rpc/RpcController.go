@@ -24,7 +24,8 @@ import (
 	msg "github.com/vault-thirteen/Simpel-Chat-Server/src/Chat/models/entities/volatile/Message"
 	"github.com/vault-thirteen/Simpel-Chat-Server/src/Chat/models/enum"
 	"github.com/vault-thirteen/Simpel-Chat-Server/src/Chat/models/request"
-	rpcm "github.com/vault-thirteen/Simpel-Chat-Server/src/Chat/models/rpc"
+	"github.com/vault-thirteen/Simpel-Chat-Server/src/Chat/models/rpc"
+	"github.com/vault-thirteen/Simpel-Chat-Server/src/Chat/models/rpc/rqrp"
 	re "github.com/vault-thirteen/Simpel-Chat-Server/src/Chat/rpc/errors"
 	"github.com/vault-thirteen/Simpel-Chat-Server/src/Chat/settings"
 	"github.com/vault-thirteen/Simpel-Chat-Server/src/helper"
@@ -119,15 +120,15 @@ func (rc *RpcController) GetRpcFunctions() []jrm1.RpcFunction {
 // Ping.
 
 func (rc *RpcController) Ping(_ *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
-	return rpcm.PingResult{
-		Success: rpcm.Success{OK: true},
+	return rqrp.PingResult{
+		Success: rpc.Success{OK: true},
 	}, nil
 }
 
 // Version & Name.
 
 func (rc *RpcController) Version(_ *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
-	return rpcm.VersionResult{
+	return rqrp.VersionResult{
 		ServerName:        rc.chatServerName,
 		ChatFamily:        rc.chatFamilyName,
 		AppName:           rc.ver.ProgramName(),
@@ -139,13 +140,13 @@ func (rc *RpcController) Version(_ *json.RawMessage, _ *jrm1.ResponseMetaData) (
 // Auth functions.
 
 func (rc *RpcController) RegisterUser1(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
-	var p *rpcm.RegisterUser1Params
+	var p *rqrp.RegisterUser1Params
 	rpcErr = jrm1.ParseParameters(params, &p)
 	if rpcErr != nil {
 		return nil, rpcErr
 	}
 
-	var r *rpcm.RegisterUser1Result
+	var r *rqrp.RegisterUser1Result
 	r, rpcErr = rc.registerUser1(p)
 	if rpcErr != nil {
 		return nil, rpcErr
@@ -153,7 +154,7 @@ func (rc *RpcController) RegisterUser1(params *json.RawMessage, _ *jrm1.Response
 
 	return r, nil
 }
-func (rc *RpcController) registerUser1(p *rpcm.RegisterUser1Params) (result *rpcm.RegisterUser1Result, rpcErr *jrm1.RpcError) {
+func (rc *RpcController) registerUser1(p *rqrp.RegisterUser1Params) (result *rqrp.RegisterUser1Result, rpcErr *jrm1.RpcError) {
 	// Is registration enabled ?
 	{
 		if !rc.chatUserSettings.IsRegistrationEnabled {
@@ -164,10 +165,10 @@ func (rc *RpcController) registerUser1(p *rpcm.RegisterUser1Params) (result *rpc
 	// Check input data.
 	{
 		if len(p.EMailAddress) == 0 {
-			return nil, re.NewRpcError_FieldNotSet(rpcm.Field_EMailAddress)
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_EMailAddress)
 		}
 		if !helper.IsEmailAddressValid(p.EMailAddress) {
-			return nil, re.NewRpcError_FieldValueIsNotValid(rpcm.Field_EMailAddress)
+			return nil, re.NewRpcError_FieldValueIsNotValid(rpc.Field_EMailAddress)
 		}
 	}
 
@@ -191,7 +192,7 @@ func (rc *RpcController) registerUser1(p *rpcm.RegisterUser1Params) (result *rpc
 				return nil, re.NewRpcError_RequestIdGenerator(err)
 			}
 
-			result = &rpcm.RegisterUser1Result{RequestId: *fakeRequestId}
+			result = &rqrp.RegisterUser1Result{RequestId: *fakeRequestId}
 			return result, nil
 		}
 	}
@@ -225,18 +226,18 @@ func (rc *RpcController) registerUser1(p *rpcm.RegisterUser1Params) (result *rpc
 			return nil, rc.der.DatabaseError(err)
 		}
 
-		result = &rpcm.RegisterUser1Result{RequestId: *requestId}
+		result = &rqrp.RegisterUser1Result{RequestId: *requestId}
 		return result, nil
 	}
 }
 func (rc *RpcController) RegisterUser2(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
-	var p *rpcm.RegisterUser2Params
+	var p *rqrp.RegisterUser2Params
 	rpcErr = jrm1.ParseParameters(params, &p)
 	if rpcErr != nil {
 		return nil, rpcErr
 	}
 
-	var r *rpcm.RegisterUser2Result
+	var r *rqrp.RegisterUser2Result
 	r, rpcErr = rc.registerUser2(p)
 	if rpcErr != nil {
 		return nil, rpcErr
@@ -244,7 +245,7 @@ func (rc *RpcController) RegisterUser2(params *json.RawMessage, _ *jrm1.Response
 
 	return r, nil
 }
-func (rc *RpcController) registerUser2(p *rpcm.RegisterUser2Params) (result *rpcm.RegisterUser2Result, rpcErr *jrm1.RpcError) {
+func (rc *RpcController) registerUser2(p *rqrp.RegisterUser2Params) (result *rqrp.RegisterUser2Result, rpcErr *jrm1.RpcError) {
 	// Is registration enabled ?
 	{
 		if !rc.chatUserSettings.IsRegistrationEnabled {
@@ -255,28 +256,28 @@ func (rc *RpcController) registerUser2(p *rpcm.RegisterUser2Params) (result *rpc
 	// Check input data.
 	{
 		if len(p.EMailAddress) == 0 {
-			return nil, re.NewRpcError_FieldNotSet(rpcm.Field_EMailAddress)
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_EMailAddress)
 		}
 		if !helper.IsEmailAddressValid(p.EMailAddress) {
-			return nil, re.NewRpcError_FieldValueIsNotValid(rpcm.Field_EMailAddress)
+			return nil, re.NewRpcError_FieldValueIsNotValid(rpc.Field_EMailAddress)
 		}
 		if len(p.RequestId) == 0 {
-			return nil, re.NewRpcError_FieldNotSet(rpcm.Field_RequestId)
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_RequestId)
 		}
 		if len(p.VerificationCode) == 0 {
-			return nil, re.NewRpcError_FieldNotSet(rpcm.Field_VerificationCode)
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_VerificationCode)
 		}
 		if len(p.UserName) == 0 {
-			return nil, re.NewRpcError_FieldNotSet(rpcm.Field_UserName)
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_UserName)
 		}
 		if !usr.IsUserNameValid(p.UserName) {
-			return nil, re.NewRpcError_FieldValueIsNotValid(rpcm.Field_UserName)
+			return nil, re.NewRpcError_FieldValueIsNotValid(rpc.Field_UserName)
 		}
 		if len(p.UserPassword) == 0 {
-			return nil, re.NewRpcError_FieldNotSet(rpcm.Field_UserPassword)
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_UserPassword)
 		}
 		if !pwd.IsPasswordValid(p.UserPassword) {
-			return nil, re.NewRpcError_FieldValueIsNotValid(rpcm.Field_UserPassword)
+			return nil, re.NewRpcError_FieldValueIsNotValid(rpc.Field_UserPassword)
 		}
 	}
 
@@ -292,7 +293,7 @@ func (rc *RpcController) registerUser2(p *rpcm.RegisterUser2Params) (result *rpc
 					return nil, re.NewRpcError_RequestIdGenerator(err)
 				}
 
-				result = &rpcm.RegisterUser2Result{Success: rpcm.Success{OK: false}}
+				result = &rqrp.RegisterUser2Result{Success: rpc.Success{OK: false}}
 				return result, nil
 			}
 
@@ -305,7 +306,7 @@ func (rc *RpcController) registerUser2(p *rpcm.RegisterUser2Params) (result *rpc
 				return nil, re.NewRpcError_RequestIdGenerator(err)
 			}
 
-			result = &rpcm.RegisterUser2Result{Success: rpcm.Success{OK: false}}
+			result = &rqrp.RegisterUser2Result{Success: rpc.Success{OK: false}}
 			return result, nil
 		}
 	}
@@ -356,17 +357,17 @@ func (rc *RpcController) registerUser2(p *rpcm.RegisterUser2Params) (result *rpc
 		}
 	}
 
-	result = &rpcm.RegisterUser2Result{Success: rpcm.Success{OK: true}}
+	result = &rqrp.RegisterUser2Result{Success: rpc.Success{OK: true}}
 	return result, nil
 }
 func (rc *RpcController) LogIn1(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
-	var p *rpcm.LogIn1Params
+	var p *rqrp.LogIn1Params
 	rpcErr = jrm1.ParseParameters(params, &p)
 	if rpcErr != nil {
 		return nil, rpcErr
 	}
 
-	var r *rpcm.LogIn1Result
+	var r *rqrp.LogIn1Result
 	r, rpcErr = rc.logIn1(p)
 	if rpcErr != nil {
 		return nil, rpcErr
@@ -374,14 +375,14 @@ func (rc *RpcController) LogIn1(params *json.RawMessage, _ *jrm1.ResponseMetaDat
 
 	return r, nil
 }
-func (rc *RpcController) logIn1(p *rpcm.LogIn1Params) (result *rpcm.LogIn1Result, rpcErr *jrm1.RpcError) {
+func (rc *RpcController) logIn1(p *rqrp.LogIn1Params) (result *rqrp.LogIn1Result, rpcErr *jrm1.RpcError) {
 	// Check input data.
 	{
 		if len(p.EMailAddress) == 0 {
-			return nil, re.NewRpcError_FieldNotSet(rpcm.Field_EMailAddress)
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_EMailAddress)
 		}
 		if !helper.IsEmailAddressValid(p.EMailAddress) {
-			return nil, re.NewRpcError_FieldValueIsNotValid(rpcm.Field_EMailAddress)
+			return nil, re.NewRpcError_FieldValueIsNotValid(rpc.Field_EMailAddress)
 		}
 	}
 
@@ -405,7 +406,7 @@ func (rc *RpcController) logIn1(p *rpcm.LogIn1Params) (result *rpcm.LogIn1Result
 				return nil, re.NewRpcError_RequestIdGenerator(err)
 			}
 
-			result = &rpcm.LogIn1Result{RequestId: *fakeRequestId}
+			result = &rqrp.LogIn1Result{RequestId: *fakeRequestId}
 			return result, nil
 		}
 	}
@@ -442,7 +443,7 @@ func (rc *RpcController) logIn1(p *rpcm.LogIn1Params) (result *rpcm.LogIn1Result
 				return nil, re.NewRpcError_RequestIdGenerator(err)
 			}
 
-			result = &rpcm.LogIn1Result{RequestId: *fakeRequestId}
+			result = &rqrp.LogIn1Result{RequestId: *fakeRequestId}
 			return result, nil
 		}
 	}
@@ -476,18 +477,18 @@ func (rc *RpcController) logIn1(p *rpcm.LogIn1Params) (result *rpcm.LogIn1Result
 			return nil, rc.der.DatabaseError(err)
 		}
 
-		result = &rpcm.LogIn1Result{RequestId: *requestId}
+		result = &rqrp.LogIn1Result{RequestId: *requestId}
 		return result, nil
 	}
 }
 func (rc *RpcController) LogIn2(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
-	var p *rpcm.LogIn2Params
+	var p *rqrp.LogIn2Params
 	rpcErr = jrm1.ParseParameters(params, &p)
 	if rpcErr != nil {
 		return nil, rpcErr
 	}
 
-	var r *rpcm.LogIn2Result
+	var r *rqrp.LogIn2Result
 	r, rpcErr = rc.logIn2(p)
 	if rpcErr != nil {
 		return nil, rpcErr
@@ -495,26 +496,26 @@ func (rc *RpcController) LogIn2(params *json.RawMessage, _ *jrm1.ResponseMetaDat
 
 	return r, nil
 }
-func (rc *RpcController) logIn2(p *rpcm.LogIn2Params) (result *rpcm.LogIn2Result, rpcErr *jrm1.RpcError) {
+func (rc *RpcController) logIn2(p *rqrp.LogIn2Params) (result *rqrp.LogIn2Result, rpcErr *jrm1.RpcError) {
 	// Check input data.
 	{
 		if len(p.EMailAddress) == 0 {
-			return nil, re.NewRpcError_FieldNotSet(rpcm.Field_EMailAddress)
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_EMailAddress)
 		}
 		if !helper.IsEmailAddressValid(p.EMailAddress) {
-			return nil, re.NewRpcError_FieldValueIsNotValid(rpcm.Field_EMailAddress)
+			return nil, re.NewRpcError_FieldValueIsNotValid(rpc.Field_EMailAddress)
 		}
 		if len(p.RequestId) == 0 {
-			return nil, re.NewRpcError_FieldNotSet(rpcm.Field_RequestId)
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_RequestId)
 		}
 		if len(p.VerificationCode) == 0 {
-			return nil, re.NewRpcError_FieldNotSet(rpcm.Field_VerificationCode)
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_VerificationCode)
 		}
 		if len(p.UserPassword) == 0 {
-			return nil, re.NewRpcError_FieldNotSet(rpcm.Field_UserPassword)
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_UserPassword)
 		}
 		if !pwd.IsPasswordValid(p.UserPassword) {
-			return nil, re.NewRpcError_FieldValueIsNotValid(rpcm.Field_UserPassword)
+			return nil, re.NewRpcError_FieldValueIsNotValid(rpc.Field_UserPassword)
 		}
 	}
 
@@ -532,7 +533,7 @@ func (rc *RpcController) logIn2(p *rpcm.LogIn2Params) (result *rpcm.LogIn2Result
 				return nil, re.NewRpcError_RequestIdGenerator(err)
 			}
 
-			result = &rpcm.LogIn2Result{Success: rpcm.Success{OK: false}}
+			result = &rqrp.LogIn2Result{Success: rpc.Success{OK: false}}
 			return result, nil
 		}
 	}
@@ -563,7 +564,7 @@ func (rc *RpcController) logIn2(p *rpcm.LogIn2Params) (result *rpcm.LogIn2Result
 				return nil, re.NewRpcError_RequestIdGenerator(err)
 			}
 
-			result = &rpcm.LogIn2Result{Success: rpcm.Success{OK: false}}
+			result = &rqrp.LogIn2Result{Success: rpc.Success{OK: false}}
 			return result, nil
 		}
 	}
@@ -580,7 +581,7 @@ func (rc *RpcController) logIn2(p *rpcm.LogIn2Params) (result *rpcm.LogIn2Result
 					return nil, re.NewRpcError_RequestIdGenerator(err)
 				}
 
-				result = &rpcm.LogIn2Result{Success: rpcm.Success{OK: false}}
+				result = &rqrp.LogIn2Result{Success: rpc.Success{OK: false}}
 				return result, nil
 			}
 
@@ -593,7 +594,7 @@ func (rc *RpcController) logIn2(p *rpcm.LogIn2Params) (result *rpcm.LogIn2Result
 				return nil, re.NewRpcError_RequestIdGenerator(err)
 			}
 
-			result = &rpcm.LogIn2Result{Success: rpcm.Success{OK: false}}
+			result = &rqrp.LogIn2Result{Success: rpc.Success{OK: false}}
 			return result, nil
 		}
 	}
@@ -655,20 +656,20 @@ func (rc *RpcController) logIn2(p *rpcm.LogIn2Params) (result *rpcm.LogIn2Result
 		}
 	}
 
-	result = &rpcm.LogIn2Result{
+	result = &rqrp.LogIn2Result{
 		Token:   *token,
-		Success: rpcm.Success{OK: true},
+		Success: rpc.Success{OK: true},
 	}
 	return result, nil
 }
 func (rc *RpcController) LogOut1(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
-	var p *rpcm.LogOut1Params
+	var p *rqrp.LogOut1Params
 	rpcErr = jrm1.ParseParameters(params, &p)
 	if rpcErr != nil {
 		return nil, rpcErr
 	}
 
-	var r *rpcm.LogOut1Result
+	var r *rqrp.LogOut1Result
 	r, rpcErr = rc.logOut1(p)
 	if rpcErr != nil {
 		return nil, rpcErr
@@ -676,7 +677,7 @@ func (rc *RpcController) LogOut1(params *json.RawMessage, _ *jrm1.ResponseMetaDa
 
 	return r, nil
 }
-func (rc *RpcController) logOut1(p *rpcm.LogOut1Params) (result *rpcm.LogOut1Result, rpcErr *jrm1.RpcError) {
+func (rc *RpcController) logOut1(p *rqrp.LogOut1Params) (result *rqrp.LogOut1Result, rpcErr *jrm1.RpcError) {
 	var session *ses.Session
 	session, rpcErr = rc.getUserSession(p.Auth)
 	if rpcErr != nil {
@@ -702,18 +703,18 @@ func (rc *RpcController) logOut1(p *rpcm.LogOut1Params) (result *rpcm.LogOut1Res
 			return nil, rc.der.DatabaseError(err)
 		}
 
-		result = &rpcm.LogOut1Result{RequestId: *requestId}
+		result = &rqrp.LogOut1Result{RequestId: *requestId}
 		return result, nil
 	}
 }
 func (rc *RpcController) LogOut2(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
-	var p *rpcm.LogOut2Params
+	var p *rqrp.LogOut2Params
 	rpcErr = jrm1.ParseParameters(params, &p)
 	if rpcErr != nil {
 		return nil, rpcErr
 	}
 
-	var r *rpcm.LogOut2Result
+	var r *rqrp.LogOut2Result
 	r, rpcErr = rc.logOut2(p)
 	if rpcErr != nil {
 		return nil, rpcErr
@@ -721,7 +722,7 @@ func (rc *RpcController) LogOut2(params *json.RawMessage, _ *jrm1.ResponseMetaDa
 
 	return r, nil
 }
-func (rc *RpcController) logOut2(p *rpcm.LogOut2Params) (result *rpcm.LogOut2Result, rpcErr *jrm1.RpcError) {
+func (rc *RpcController) logOut2(p *rqrp.LogOut2Params) (result *rqrp.LogOut2Result, rpcErr *jrm1.RpcError) {
 	var session *ses.Session
 	session, rpcErr = rc.getUserSession(p.Auth)
 	if rpcErr != nil {
@@ -733,7 +734,7 @@ func (rc *RpcController) logOut2(p *rpcm.LogOut2Params) (result *rpcm.LogOut2Res
 	// Check input data.
 	{
 		if len(p.RequestId) == 0 {
-			return nil, re.NewRpcError_FieldNotSet(rpcm.Field_RequestId)
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_RequestId)
 		}
 	}
 
@@ -754,7 +755,7 @@ func (rc *RpcController) logOut2(p *rpcm.LogOut2Params) (result *rpcm.LogOut2Res
 				return nil, re.NewRpcError_RequestIdGenerator(err)
 			}
 
-			result = &rpcm.LogOut2Result{Success: rpcm.Success{OK: false}}
+			result = &rqrp.LogOut2Result{Success: rpc.Success{OK: false}}
 			return result, nil
 		}
 	}
@@ -786,17 +787,17 @@ func (rc *RpcController) logOut2(p *rpcm.LogOut2Params) (result *rpcm.LogOut2Res
 		}
 	}
 
-	result = &rpcm.LogOut2Result{Success: rpcm.Success{OK: true}}
+	result = &rqrp.LogOut2Result{Success: rpc.Success{OK: true}}
 	return result, nil
 }
 func (rc *RpcController) ChangePassword1(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
-	var p *rpcm.ChangePassword1Params
+	var p *rqrp.ChangePassword1Params
 	rpcErr = jrm1.ParseParameters(params, &p)
 	if rpcErr != nil {
 		return nil, rpcErr
 	}
 
-	var r *rpcm.ChangePassword1Result
+	var r *rqrp.ChangePassword1Result
 	r, rpcErr = rc.changePassword1(p)
 	if rpcErr != nil {
 		return nil, rpcErr
@@ -804,7 +805,7 @@ func (rc *RpcController) ChangePassword1(params *json.RawMessage, _ *jrm1.Respon
 
 	return r, nil
 }
-func (rc *RpcController) changePassword1(p *rpcm.ChangePassword1Params) (result *rpcm.ChangePassword1Result, rpcErr *jrm1.RpcError) {
+func (rc *RpcController) changePassword1(p *rqrp.ChangePassword1Params) (result *rqrp.ChangePassword1Result, rpcErr *jrm1.RpcError) {
 	var session *ses.Session
 	session, rpcErr = rc.getUserSession(p.Auth)
 	if rpcErr != nil {
@@ -848,18 +849,18 @@ func (rc *RpcController) changePassword1(p *rpcm.ChangePassword1Params) (result 
 			return nil, rc.der.DatabaseError(err)
 		}
 
-		result = &rpcm.ChangePassword1Result{RequestId: *requestId}
+		result = &rqrp.ChangePassword1Result{RequestId: *requestId}
 		return result, nil
 	}
 }
 func (rc *RpcController) ChangePassword2(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
-	var p *rpcm.ChangePassword2Params
+	var p *rqrp.ChangePassword2Params
 	rpcErr = jrm1.ParseParameters(params, &p)
 	if rpcErr != nil {
 		return nil, rpcErr
 	}
 
-	var r *rpcm.ChangePassword2Result
+	var r *rqrp.ChangePassword2Result
 	r, rpcErr = rc.changePassword2(p)
 	if rpcErr != nil {
 		return nil, rpcErr
@@ -867,7 +868,7 @@ func (rc *RpcController) ChangePassword2(params *json.RawMessage, _ *jrm1.Respon
 
 	return r, nil
 }
-func (rc *RpcController) changePassword2(p *rpcm.ChangePassword2Params) (result *rpcm.ChangePassword2Result, rpcErr *jrm1.RpcError) {
+func (rc *RpcController) changePassword2(p *rqrp.ChangePassword2Params) (result *rqrp.ChangePassword2Result, rpcErr *jrm1.RpcError) {
 	var session *ses.Session
 	session, rpcErr = rc.getUserSession(p.Auth)
 	if rpcErr != nil {
@@ -879,28 +880,28 @@ func (rc *RpcController) changePassword2(p *rpcm.ChangePassword2Params) (result 
 	// Check input data.
 	{
 		if len(p.RequestId) == 0 {
-			return nil, re.NewRpcError_FieldNotSet(rpcm.Field_RequestId)
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_RequestId)
 		}
 		if len(p.VerificationCode) == 0 {
-			return nil, re.NewRpcError_FieldNotSet(rpcm.Field_VerificationCode)
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_VerificationCode)
 		}
 		if len(p.UserPassword) == 0 {
-			return nil, re.NewRpcError_FieldNotSet(rpcm.Field_UserPassword)
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_UserPassword)
 		}
 		if !pwd.IsPasswordValid(p.UserPassword) {
-			return nil, re.NewRpcError_FieldValueIsNotValid(rpcm.Field_UserPassword)
+			return nil, re.NewRpcError_FieldValueIsNotValid(rpc.Field_UserPassword)
 		}
 		if len(p.NewUserPassword1) == 0 {
-			return nil, re.NewRpcError_FieldNotSet(rpcm.Field_UserPassword)
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_UserPassword)
 		}
 		if !pwd.IsPasswordValid(p.NewUserPassword1) {
-			return nil, re.NewRpcError_FieldValueIsNotValid(rpcm.Field_UserPassword)
+			return nil, re.NewRpcError_FieldValueIsNotValid(rpc.Field_UserPassword)
 		}
 		if len(p.NewUserPassword2) == 0 {
-			return nil, re.NewRpcError_FieldNotSet(rpcm.Field_UserPassword)
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_UserPassword)
 		}
 		if !pwd.IsPasswordValid(p.NewUserPassword2) {
-			return nil, re.NewRpcError_FieldValueIsNotValid(rpcm.Field_UserPassword)
+			return nil, re.NewRpcError_FieldValueIsNotValid(rpc.Field_UserPassword)
 		}
 		if p.NewUserPassword1 != p.NewUserPassword2 {
 			return nil, re.NewRpcError_NewPasswordsAreDifferent(nil)
@@ -934,7 +935,7 @@ func (rc *RpcController) changePassword2(p *rpcm.ChangePassword2Params) (result 
 					return nil, re.NewRpcError_RequestIdGenerator(err)
 				}
 
-				result = &rpcm.ChangePassword2Result{Success: rpcm.Success{OK: false}}
+				result = &rqrp.ChangePassword2Result{Success: rpc.Success{OK: false}}
 				return result, nil
 			}
 
@@ -947,7 +948,7 @@ func (rc *RpcController) changePassword2(p *rpcm.ChangePassword2Params) (result 
 				return nil, re.NewRpcError_RequestIdGenerator(err)
 			}
 
-			result = &rpcm.ChangePassword2Result{Success: rpcm.Success{OK: false}}
+			result = &rqrp.ChangePassword2Result{Success: rpc.Success{OK: false}}
 			return result, nil
 		}
 	}
@@ -1012,17 +1013,17 @@ func (rc *RpcController) changePassword2(p *rpcm.ChangePassword2Params) (result 
 		}
 	}
 
-	result = &rpcm.ChangePassword2Result{Success: rpcm.Success{OK: true}}
+	result = &rqrp.ChangePassword2Result{Success: rpc.Success{OK: true}}
 	return result, nil
 }
 func (rc *RpcController) BanUser(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
-	var p *rpcm.BanUserParams
+	var p *rqrp.BanUserParams
 	rpcErr = jrm1.ParseParameters(params, &p)
 	if rpcErr != nil {
 		return nil, rpcErr
 	}
 
-	var r *rpcm.BanUserResult
+	var r *rqrp.BanUserResult
 	r, rpcErr = rc.banUser(p)
 	if rpcErr != nil {
 		return nil, rpcErr
@@ -1030,7 +1031,7 @@ func (rc *RpcController) BanUser(params *json.RawMessage, _ *jrm1.ResponseMetaDa
 
 	return r, nil
 }
-func (rc *RpcController) banUser(p *rpcm.BanUserParams) (result *rpcm.BanUserResult, rpcErr *jrm1.RpcError) {
+func (rc *RpcController) banUser(p *rqrp.BanUserParams) (result *rqrp.BanUserResult, rpcErr *jrm1.RpcError) {
 	var session *ses.Session
 	session, rpcErr = rc.getUserSession(p.Auth)
 	if rpcErr != nil {
@@ -1055,7 +1056,7 @@ func (rc *RpcController) banUser(p *rpcm.BanUserParams) (result *rpcm.BanUserRes
 	// Check input data.
 	{
 		if p.UserId == 0 {
-			return nil, re.NewRpcError_FieldNotSet(rpcm.Field_UserId)
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_UserId)
 		}
 		if p.UserId == user.Id {
 			return nil, re.NewRpcError_CanNotBanOneself(nil)
@@ -1125,20 +1126,20 @@ func (rc *RpcController) banUser(p *rpcm.BanUserParams) (result *rpcm.BanUserRes
 		}
 	}
 
-	result = &rpcm.BanUserResult{Success: rpcm.Success{OK: true}}
+	result = &rqrp.BanUserResult{Success: rpc.Success{OK: true}}
 	return result, nil
 }
 
 // Room functions.
 
 func (rc *RpcController) AddRoom(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
-	var p *rpcm.AddRoomParams
+	var p *rqrp.AddRoomParams
 	rpcErr = jrm1.ParseParameters(params, &p)
 	if rpcErr != nil {
 		return nil, rpcErr
 	}
 
-	var r *rpcm.AddRoomResult
+	var r *rqrp.AddRoomResult
 	r, rpcErr = rc.addRoom(p)
 	if rpcErr != nil {
 		return nil, rpcErr
@@ -1146,7 +1147,7 @@ func (rc *RpcController) AddRoom(params *json.RawMessage, _ *jrm1.ResponseMetaDa
 
 	return r, nil
 }
-func (rc *RpcController) addRoom(p *rpcm.AddRoomParams) (result *rpcm.AddRoomResult, rpcErr *jrm1.RpcError) {
+func (rc *RpcController) addRoom(p *rqrp.AddRoomParams) (result *rqrp.AddRoomResult, rpcErr *jrm1.RpcError) {
 	var session *ses.Session
 	session, rpcErr = rc.getUserSession(p.Auth)
 	if rpcErr != nil {
@@ -1171,10 +1172,10 @@ func (rc *RpcController) addRoom(p *rpcm.AddRoomParams) (result *rpcm.AddRoomRes
 	// Check input data.
 	{
 		if p.RoomType == 0 {
-			return nil, re.NewRpcError_FieldNotSet(rpcm.Field_RoomType)
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_RoomType)
 		}
 		if len(p.RoomName) == 0 {
-			return nil, re.NewRpcError_FieldNotSet(rpcm.Field_RoomName)
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_RoomName)
 		}
 	}
 
@@ -1186,8 +1187,8 @@ func (rc *RpcController) addRoom(p *rpcm.AddRoomParams) (result *rpcm.AddRoomRes
 			return nil, rpcErr
 		}
 
-		result = &rpcm.AddRoomResult{
-			Success: rpcm.Success{OK: true},
+		result = &rqrp.AddRoomResult{
+			Success: rpc.Success{OK: true},
 			RoomId:  roomId,
 		}
 	}
@@ -1209,13 +1210,13 @@ func (rc *RpcController) addRoom(p *rpcm.AddRoomParams) (result *rpcm.AddRoomRes
 	return result, nil
 }
 func (rc *RpcController) DeleteRoom(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
-	var p *rpcm.DeleteRoomParams
+	var p *rqrp.DeleteRoomParams
 	rpcErr = jrm1.ParseParameters(params, &p)
 	if rpcErr != nil {
 		return nil, rpcErr
 	}
 
-	var r *rpcm.DeleteRoomResult
+	var r *rqrp.DeleteRoomResult
 	r, rpcErr = rc.deleteRoom(p)
 	if rpcErr != nil {
 		return nil, rpcErr
@@ -1223,7 +1224,7 @@ func (rc *RpcController) DeleteRoom(params *json.RawMessage, _ *jrm1.ResponseMet
 
 	return r, nil
 }
-func (rc *RpcController) deleteRoom(p *rpcm.DeleteRoomParams) (result *rpcm.DeleteRoomResult, rpcErr *jrm1.RpcError) {
+func (rc *RpcController) deleteRoom(p *rqrp.DeleteRoomParams) (result *rqrp.DeleteRoomResult, rpcErr *jrm1.RpcError) {
 	var session *ses.Session
 	session, rpcErr = rc.getUserSession(p.Auth)
 	if rpcErr != nil {
@@ -1248,7 +1249,7 @@ func (rc *RpcController) deleteRoom(p *rpcm.DeleteRoomParams) (result *rpcm.Dele
 	// Check input data.
 	{
 		if p.RoomId == 0 {
-			return nil, re.NewRpcError_FieldNotSet(rpcm.Field_RoomId)
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_RoomId)
 		}
 	}
 
@@ -1259,7 +1260,7 @@ func (rc *RpcController) deleteRoom(p *rpcm.DeleteRoomParams) (result *rpcm.Dele
 			return nil, rpcErr
 		}
 
-		result = &rpcm.DeleteRoomResult{Success: rpcm.Success{OK: true}}
+		result = &rqrp.DeleteRoomResult{Success: rpc.Success{OK: true}}
 	}
 
 	// Event report.
@@ -1279,13 +1280,13 @@ func (rc *RpcController) deleteRoom(p *rpcm.DeleteRoomParams) (result *rpcm.Dele
 	return result, nil
 }
 func (rc *RpcController) ListRooms(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
-	var p *rpcm.ListRoomsParams
+	var p *rqrp.ListRoomsParams
 	rpcErr = jrm1.ParseParameters(params, &p)
 	if rpcErr != nil {
 		return nil, rpcErr
 	}
 
-	var r *rpcm.ListRoomsResult
+	var r *rqrp.ListRoomsResult
 	r, rpcErr = rc.listRooms(p)
 	if rpcErr != nil {
 		return nil, rpcErr
@@ -1293,7 +1294,7 @@ func (rc *RpcController) ListRooms(params *json.RawMessage, _ *jrm1.ResponseMeta
 
 	return r, nil
 }
-func (rc *RpcController) listRooms(p *rpcm.ListRoomsParams) (result *rpcm.ListRoomsResult, rpcErr *jrm1.RpcError) {
+func (rc *RpcController) listRooms(p *rqrp.ListRoomsParams) (result *rqrp.ListRoomsResult, rpcErr *jrm1.RpcError) {
 	var session *ses.Session
 	session, rpcErr = rc.getUserSession(p.Auth)
 	if rpcErr != nil {
@@ -1310,7 +1311,7 @@ func (rc *RpcController) listRooms(p *rpcm.ListRoomsParams) (result *rpcm.ListRo
 			return nil, rpcErr
 		}
 
-		result = &rpcm.ListRoomsResult{Rooms: rooms}
+		result = &rqrp.ListRoomsResult{Rooms: rooms}
 	}
 
 	return result, nil
@@ -1319,13 +1320,13 @@ func (rc *RpcController) listRooms(p *rpcm.ListRoomsParams) (result *rpcm.ListRo
 // Room Moderator functions.
 
 func (rc *RpcController) AddRoomModerator(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
-	var p *rpcm.AddRoomModeratorParams
+	var p *rqrp.AddRoomModeratorParams
 	rpcErr = jrm1.ParseParameters(params, &p)
 	if rpcErr != nil {
 		return nil, rpcErr
 	}
 
-	var r *rpcm.AddRoomModeratorResult
+	var r *rqrp.AddRoomModeratorResult
 	r, rpcErr = rc.addRoomModerator(p)
 	if rpcErr != nil {
 		return nil, rpcErr
@@ -1333,7 +1334,7 @@ func (rc *RpcController) AddRoomModerator(params *json.RawMessage, _ *jrm1.Respo
 
 	return r, nil
 }
-func (rc *RpcController) addRoomModerator(p *rpcm.AddRoomModeratorParams) (result *rpcm.AddRoomModeratorResult, rpcErr *jrm1.RpcError) {
+func (rc *RpcController) addRoomModerator(p *rqrp.AddRoomModeratorParams) (result *rqrp.AddRoomModeratorResult, rpcErr *jrm1.RpcError) {
 	var session *ses.Session
 	session, rpcErr = rc.getUserSession(p.Auth)
 	if rpcErr != nil {
@@ -1358,10 +1359,10 @@ func (rc *RpcController) addRoomModerator(p *rpcm.AddRoomModeratorParams) (resul
 	// Check input data.
 	{
 		if p.RoomId == 0 {
-			return nil, re.NewRpcError_FieldNotSet(rpcm.Field_RoomId)
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_RoomId)
 		}
 		if p.UserId == 0 {
-			return nil, re.NewRpcError_FieldNotSet(rpcm.Field_UserId)
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_UserId)
 		}
 	}
 
@@ -1372,7 +1373,7 @@ func (rc *RpcController) addRoomModerator(p *rpcm.AddRoomModeratorParams) (resul
 			return nil, rpcErr
 		}
 
-		result = &rpcm.AddRoomModeratorResult{Success: rpcm.Success{OK: true}}
+		result = &rqrp.AddRoomModeratorResult{Success: rpc.Success{OK: true}}
 	}
 
 	// Event report.
@@ -1392,13 +1393,13 @@ func (rc *RpcController) addRoomModerator(p *rpcm.AddRoomModeratorParams) (resul
 	return result, nil
 }
 func (rc *RpcController) DeleteRoomModerator(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
-	var p *rpcm.DeleteRoomModeratorParams
+	var p *rqrp.DeleteRoomModeratorParams
 	rpcErr = jrm1.ParseParameters(params, &p)
 	if rpcErr != nil {
 		return nil, rpcErr
 	}
 
-	var r *rpcm.DeleteRoomModeratorResult
+	var r *rqrp.DeleteRoomModeratorResult
 	r, rpcErr = rc.deleteRoomModerator(p)
 	if rpcErr != nil {
 		return nil, rpcErr
@@ -1406,7 +1407,7 @@ func (rc *RpcController) DeleteRoomModerator(params *json.RawMessage, _ *jrm1.Re
 
 	return r, nil
 }
-func (rc *RpcController) deleteRoomModerator(p *rpcm.DeleteRoomModeratorParams) (result *rpcm.DeleteRoomModeratorResult, rpcErr *jrm1.RpcError) {
+func (rc *RpcController) deleteRoomModerator(p *rqrp.DeleteRoomModeratorParams) (result *rqrp.DeleteRoomModeratorResult, rpcErr *jrm1.RpcError) {
 	var session *ses.Session
 	session, rpcErr = rc.getUserSession(p.Auth)
 	if rpcErr != nil {
@@ -1431,10 +1432,10 @@ func (rc *RpcController) deleteRoomModerator(p *rpcm.DeleteRoomModeratorParams) 
 	// Check input data.
 	{
 		if p.RoomId == 0 {
-			return nil, re.NewRpcError_FieldNotSet(rpcm.Field_RoomId)
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_RoomId)
 		}
 		if p.UserId == 0 {
-			return nil, re.NewRpcError_FieldNotSet(rpcm.Field_UserId)
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_UserId)
 		}
 	}
 
@@ -1445,7 +1446,7 @@ func (rc *RpcController) deleteRoomModerator(p *rpcm.DeleteRoomModeratorParams) 
 			return nil, rpcErr
 		}
 
-		result = &rpcm.DeleteRoomModeratorResult{Success: rpcm.Success{OK: true}}
+		result = &rqrp.DeleteRoomModeratorResult{Success: rpc.Success{OK: true}}
 	}
 
 	// Event report.
@@ -1465,13 +1466,13 @@ func (rc *RpcController) deleteRoomModerator(p *rpcm.DeleteRoomModeratorParams) 
 	return result, nil
 }
 func (rc *RpcController) ListRoomModerators(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
-	var p *rpcm.ListRoomModeratorsParams
+	var p *rqrp.ListRoomModeratorsParams
 	rpcErr = jrm1.ParseParameters(params, &p)
 	if rpcErr != nil {
 		return nil, rpcErr
 	}
 
-	var r *rpcm.ListRoomModeratorsResult
+	var r *rqrp.ListRoomModeratorsResult
 	r, rpcErr = rc.listRoomModerators(p)
 	if rpcErr != nil {
 		return nil, rpcErr
@@ -1479,7 +1480,7 @@ func (rc *RpcController) ListRoomModerators(params *json.RawMessage, _ *jrm1.Res
 
 	return r, nil
 }
-func (rc *RpcController) listRoomModerators(p *rpcm.ListRoomModeratorsParams) (result *rpcm.ListRoomModeratorsResult, rpcErr *jrm1.RpcError) {
+func (rc *RpcController) listRoomModerators(p *rqrp.ListRoomModeratorsParams) (result *rqrp.ListRoomModeratorsResult, rpcErr *jrm1.RpcError) {
 	var session *ses.Session
 	session, rpcErr = rc.getUserSession(p.Auth)
 	if rpcErr != nil {
@@ -1504,7 +1505,7 @@ func (rc *RpcController) listRoomModerators(p *rpcm.ListRoomModeratorsParams) (r
 	// Check input data.
 	{
 		if p.RoomId == 0 {
-			return nil, re.NewRpcError_FieldNotSet(rpcm.Field_RoomId)
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_RoomId)
 		}
 	}
 
@@ -1516,19 +1517,19 @@ func (rc *RpcController) listRoomModerators(p *rpcm.ListRoomModeratorsParams) (r
 			return nil, rpcErr
 		}
 
-		result = &rpcm.ListRoomModeratorsResult{UserIds: userIds}
+		result = &rqrp.ListRoomModeratorsResult{UserIds: userIds}
 	}
 
 	return result, nil
 }
 func (rc *RpcController) ResetRoomModerators(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
-	var p *rpcm.ResetRoomModeratorsParams
+	var p *rqrp.ResetRoomModeratorsParams
 	rpcErr = jrm1.ParseParameters(params, &p)
 	if rpcErr != nil {
 		return nil, rpcErr
 	}
 
-	var r *rpcm.ResetRoomModeratorsResult
+	var r *rqrp.ResetRoomModeratorsResult
 	r, rpcErr = rc.resetRoomModerators(p)
 	if rpcErr != nil {
 		return nil, rpcErr
@@ -1536,7 +1537,7 @@ func (rc *RpcController) ResetRoomModerators(params *json.RawMessage, _ *jrm1.Re
 
 	return r, nil
 }
-func (rc *RpcController) resetRoomModerators(p *rpcm.ResetRoomModeratorsParams) (result *rpcm.ResetRoomModeratorsResult, rpcErr *jrm1.RpcError) {
+func (rc *RpcController) resetRoomModerators(p *rqrp.ResetRoomModeratorsParams) (result *rqrp.ResetRoomModeratorsResult, rpcErr *jrm1.RpcError) {
 	var session *ses.Session
 	session, rpcErr = rc.getUserSession(p.Auth)
 	if rpcErr != nil {
@@ -1561,7 +1562,7 @@ func (rc *RpcController) resetRoomModerators(p *rpcm.ResetRoomModeratorsParams) 
 	// Check input data.
 	{
 		if p.RoomId == 0 {
-			return nil, re.NewRpcError_FieldNotSet(rpcm.Field_RoomId)
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_RoomId)
 		}
 	}
 
@@ -1572,7 +1573,7 @@ func (rc *RpcController) resetRoomModerators(p *rpcm.ResetRoomModeratorsParams) 
 			return nil, rpcErr
 		}
 
-		result = &rpcm.ResetRoomModeratorsResult{Success: rpcm.Success{OK: true}}
+		result = &rqrp.ResetRoomModeratorsResult{Success: rpc.Success{OK: true}}
 	}
 
 	// Event report.
@@ -1595,13 +1596,13 @@ func (rc *RpcController) resetRoomModerators(p *rpcm.ResetRoomModeratorsParams) 
 // Allowed Room User functions.
 
 func (rc *RpcController) AddAllowedRoomUser(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
-	var p *rpcm.AddAllowedRoomUserParams
+	var p *rqrp.AddAllowedRoomUserParams
 	rpcErr = jrm1.ParseParameters(params, &p)
 	if rpcErr != nil {
 		return nil, rpcErr
 	}
 
-	var r *rpcm.AddAllowedRoomUserResult
+	var r *rqrp.AddAllowedRoomUserResult
 	r, rpcErr = rc.addAllowedRoomUser(p)
 	if rpcErr != nil {
 		return nil, rpcErr
@@ -1609,7 +1610,7 @@ func (rc *RpcController) AddAllowedRoomUser(params *json.RawMessage, _ *jrm1.Res
 
 	return r, nil
 }
-func (rc *RpcController) addAllowedRoomUser(p *rpcm.AddAllowedRoomUserParams) (result *rpcm.AddAllowedRoomUserResult, rpcErr *jrm1.RpcError) {
+func (rc *RpcController) addAllowedRoomUser(p *rqrp.AddAllowedRoomUserParams) (result *rqrp.AddAllowedRoomUserResult, rpcErr *jrm1.RpcError) {
 	var session *ses.Session
 	session, rpcErr = rc.getUserSession(p.Auth)
 	if rpcErr != nil {
@@ -1621,10 +1622,10 @@ func (rc *RpcController) addAllowedRoomUser(p *rpcm.AddAllowedRoomUserParams) (r
 	// Check input data.
 	{
 		if p.RoomId == 0 {
-			return nil, re.NewRpcError_FieldNotSet(rpcm.Field_RoomId)
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_RoomId)
 		}
 		if p.UserId == 0 {
-			return nil, re.NewRpcError_FieldNotSet(rpcm.Field_UserId)
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_UserId)
 		}
 	}
 
@@ -1654,7 +1655,7 @@ func (rc *RpcController) addAllowedRoomUser(p *rpcm.AddAllowedRoomUserParams) (r
 			return nil, rpcErr
 		}
 
-		result = &rpcm.AddAllowedRoomUserResult{Success: rpcm.Success{OK: true}}
+		result = &rqrp.AddAllowedRoomUserResult{Success: rpc.Success{OK: true}}
 	}
 
 	// Event report.
@@ -1674,13 +1675,13 @@ func (rc *RpcController) addAllowedRoomUser(p *rpcm.AddAllowedRoomUserParams) (r
 	return result, nil
 }
 func (rc *RpcController) DeleteAllowedRoomUser(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
-	var p *rpcm.DeleteAllowedRoomUserParams
+	var p *rqrp.DeleteAllowedRoomUserParams
 	rpcErr = jrm1.ParseParameters(params, &p)
 	if rpcErr != nil {
 		return nil, rpcErr
 	}
 
-	var r *rpcm.DeleteAllowedRoomUserResult
+	var r *rqrp.DeleteAllowedRoomUserResult
 	r, rpcErr = rc.deleteAllowedRoomUser(p)
 	if rpcErr != nil {
 		return nil, rpcErr
@@ -1688,7 +1689,7 @@ func (rc *RpcController) DeleteAllowedRoomUser(params *json.RawMessage, _ *jrm1.
 
 	return r, nil
 }
-func (rc *RpcController) deleteAllowedRoomUser(p *rpcm.DeleteAllowedRoomUserParams) (result *rpcm.DeleteAllowedRoomUserResult, rpcErr *jrm1.RpcError) {
+func (rc *RpcController) deleteAllowedRoomUser(p *rqrp.DeleteAllowedRoomUserParams) (result *rqrp.DeleteAllowedRoomUserResult, rpcErr *jrm1.RpcError) {
 	var session *ses.Session
 	session, rpcErr = rc.getUserSession(p.Auth)
 	if rpcErr != nil {
@@ -1700,10 +1701,10 @@ func (rc *RpcController) deleteAllowedRoomUser(p *rpcm.DeleteAllowedRoomUserPara
 	// Check input data.
 	{
 		if p.RoomId == 0 {
-			return nil, re.NewRpcError_FieldNotSet(rpcm.Field_RoomId)
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_RoomId)
 		}
 		if p.UserId == 0 {
-			return nil, re.NewRpcError_FieldNotSet(rpcm.Field_UserId)
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_UserId)
 		}
 	}
 
@@ -1733,7 +1734,7 @@ func (rc *RpcController) deleteAllowedRoomUser(p *rpcm.DeleteAllowedRoomUserPara
 			return nil, rpcErr
 		}
 
-		result = &rpcm.DeleteAllowedRoomUserResult{Success: rpcm.Success{OK: true}}
+		result = &rqrp.DeleteAllowedRoomUserResult{Success: rpc.Success{OK: true}}
 	}
 
 	// Event report.
@@ -1753,13 +1754,13 @@ func (rc *RpcController) deleteAllowedRoomUser(p *rpcm.DeleteAllowedRoomUserPara
 	return result, nil
 }
 func (rc *RpcController) ListAllowedRoomUsers(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
-	var p *rpcm.ListAllowedRoomUsersParams
+	var p *rqrp.ListAllowedRoomUsersParams
 	rpcErr = jrm1.ParseParameters(params, &p)
 	if rpcErr != nil {
 		return nil, rpcErr
 	}
 
-	var r *rpcm.ListAllowedRoomUsersResult
+	var r *rqrp.ListAllowedRoomUsersResult
 	r, rpcErr = rc.listAllowedRoomUsers(p)
 	if rpcErr != nil {
 		return nil, rpcErr
@@ -1767,7 +1768,7 @@ func (rc *RpcController) ListAllowedRoomUsers(params *json.RawMessage, _ *jrm1.R
 
 	return r, nil
 }
-func (rc *RpcController) listAllowedRoomUsers(p *rpcm.ListAllowedRoomUsersParams) (result *rpcm.ListAllowedRoomUsersResult, rpcErr *jrm1.RpcError) {
+func (rc *RpcController) listAllowedRoomUsers(p *rqrp.ListAllowedRoomUsersParams) (result *rqrp.ListAllowedRoomUsersResult, rpcErr *jrm1.RpcError) {
 	var session *ses.Session
 	session, rpcErr = rc.getUserSession(p.Auth)
 	if rpcErr != nil {
@@ -1779,7 +1780,7 @@ func (rc *RpcController) listAllowedRoomUsers(p *rpcm.ListAllowedRoomUsersParams
 	// Check input data.
 	{
 		if p.RoomId == 0 {
-			return nil, re.NewRpcError_FieldNotSet(rpcm.Field_RoomId)
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_RoomId)
 		}
 	}
 
@@ -1810,19 +1811,19 @@ func (rc *RpcController) listAllowedRoomUsers(p *rpcm.ListAllowedRoomUsersParams
 			return nil, rpcErr
 		}
 
-		result = &rpcm.ListAllowedRoomUsersResult{UserIds: userIds}
+		result = &rqrp.ListAllowedRoomUsersResult{UserIds: userIds}
 	}
 
 	return result, nil
 }
 func (rc *RpcController) ResetAllowedRoomUsers(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
-	var p *rpcm.ResetAllowedRoomUsersParams
+	var p *rqrp.ResetAllowedRoomUsersParams
 	rpcErr = jrm1.ParseParameters(params, &p)
 	if rpcErr != nil {
 		return nil, rpcErr
 	}
 
-	var r *rpcm.ResetAllowedRoomUsersResult
+	var r *rqrp.ResetAllowedRoomUsersResult
 	r, rpcErr = rc.resetAllowedRoomUsers(p)
 	if rpcErr != nil {
 		return nil, rpcErr
@@ -1830,7 +1831,7 @@ func (rc *RpcController) ResetAllowedRoomUsers(params *json.RawMessage, _ *jrm1.
 
 	return r, nil
 }
-func (rc *RpcController) resetAllowedRoomUsers(p *rpcm.ResetAllowedRoomUsersParams) (result *rpcm.ResetAllowedRoomUsersResult, rpcErr *jrm1.RpcError) {
+func (rc *RpcController) resetAllowedRoomUsers(p *rqrp.ResetAllowedRoomUsersParams) (result *rqrp.ResetAllowedRoomUsersResult, rpcErr *jrm1.RpcError) {
 	var session *ses.Session
 	session, rpcErr = rc.getUserSession(p.Auth)
 	if rpcErr != nil {
@@ -1842,7 +1843,7 @@ func (rc *RpcController) resetAllowedRoomUsers(p *rpcm.ResetAllowedRoomUsersPara
 	// Check input data.
 	{
 		if p.RoomId == 0 {
-			return nil, re.NewRpcError_FieldNotSet(rpcm.Field_RoomId)
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_RoomId)
 		}
 	}
 
@@ -1872,7 +1873,7 @@ func (rc *RpcController) resetAllowedRoomUsers(p *rpcm.ResetAllowedRoomUsersPara
 			return nil, rpcErr
 		}
 
-		result = &rpcm.ResetAllowedRoomUsersResult{Success: rpcm.Success{OK: true}}
+		result = &rqrp.ResetAllowedRoomUsersResult{Success: rpc.Success{OK: true}}
 	}
 
 	// Event report.
@@ -1895,13 +1896,13 @@ func (rc *RpcController) resetAllowedRoomUsers(p *rpcm.ResetAllowedRoomUsersPara
 // User Room functions.
 
 func (rc *RpcController) EnterRoom(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
-	var p *rpcm.EnterRoomParams
+	var p *rqrp.EnterRoomParams
 	rpcErr = jrm1.ParseParameters(params, &p)
 	if rpcErr != nil {
 		return nil, rpcErr
 	}
 
-	var r *rpcm.EnterRoomResult
+	var r *rqrp.EnterRoomResult
 	r, rpcErr = rc.enterRoom(p)
 	if rpcErr != nil {
 		return nil, rpcErr
@@ -1909,7 +1910,7 @@ func (rc *RpcController) EnterRoom(params *json.RawMessage, _ *jrm1.ResponseMeta
 
 	return r, nil
 }
-func (rc *RpcController) enterRoom(p *rpcm.EnterRoomParams) (result *rpcm.EnterRoomResult, rpcErr *jrm1.RpcError) {
+func (rc *RpcController) enterRoom(p *rqrp.EnterRoomParams) (result *rqrp.EnterRoomResult, rpcErr *jrm1.RpcError) {
 	var session *ses.Session
 	session, rpcErr = rc.getUserSession(p.Auth)
 	if rpcErr != nil {
@@ -1921,7 +1922,7 @@ func (rc *RpcController) enterRoom(p *rpcm.EnterRoomParams) (result *rpcm.EnterR
 	// Check input data.
 	{
 		if p.RoomId == 0 {
-			return nil, re.NewRpcError_FieldNotSet(rpcm.Field_RoomId)
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_RoomId)
 		}
 	}
 
@@ -1932,19 +1933,19 @@ func (rc *RpcController) enterRoom(p *rpcm.EnterRoomParams) (result *rpcm.EnterR
 			return nil, rpcErr
 		}
 
-		result = &rpcm.EnterRoomResult{Success: rpcm.Success{OK: true}}
+		result = &rqrp.EnterRoomResult{Success: rpc.Success{OK: true}}
 	}
 
 	return result, nil
 }
 func (rc *RpcController) LeaveRoom(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
-	var p *rpcm.LeaveRoomParams
+	var p *rqrp.LeaveRoomParams
 	rpcErr = jrm1.ParseParameters(params, &p)
 	if rpcErr != nil {
 		return nil, rpcErr
 	}
 
-	var r *rpcm.LeaveRoomResult
+	var r *rqrp.LeaveRoomResult
 	r, rpcErr = rc.leaveRoom(p)
 	if rpcErr != nil {
 		return nil, rpcErr
@@ -1952,7 +1953,7 @@ func (rc *RpcController) LeaveRoom(params *json.RawMessage, _ *jrm1.ResponseMeta
 
 	return r, nil
 }
-func (rc *RpcController) leaveRoom(p *rpcm.LeaveRoomParams) (result *rpcm.LeaveRoomResult, rpcErr *jrm1.RpcError) {
+func (rc *RpcController) leaveRoom(p *rqrp.LeaveRoomParams) (result *rqrp.LeaveRoomResult, rpcErr *jrm1.RpcError) {
 	var session *ses.Session
 	session, rpcErr = rc.getUserSession(p.Auth)
 	if rpcErr != nil {
@@ -1964,7 +1965,7 @@ func (rc *RpcController) leaveRoom(p *rpcm.LeaveRoomParams) (result *rpcm.LeaveR
 	// Check input data.
 	{
 		if p.RoomId == 0 {
-			return nil, re.NewRpcError_FieldNotSet(rpcm.Field_RoomId)
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_RoomId)
 		}
 	}
 
@@ -1975,19 +1976,19 @@ func (rc *RpcController) leaveRoom(p *rpcm.LeaveRoomParams) (result *rpcm.LeaveR
 			return nil, rpcErr
 		}
 
-		result = &rpcm.LeaveRoomResult{Success: rpcm.Success{OK: true}}
+		result = &rqrp.LeaveRoomResult{Success: rpc.Success{OK: true}}
 	}
 
 	return result, nil
 }
 func (rc *RpcController) GetMyRoomId(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
-	var p *rpcm.GetMyRoomIdParams
+	var p *rqrp.GetMyRoomIdParams
 	rpcErr = jrm1.ParseParameters(params, &p)
 	if rpcErr != nil {
 		return nil, rpcErr
 	}
 
-	var r *rpcm.GetMyRoomIdResult
+	var r *rqrp.GetMyRoomIdResult
 	r, rpcErr = rc.getMyRoomId(p)
 	if rpcErr != nil {
 		return nil, rpcErr
@@ -1995,7 +1996,7 @@ func (rc *RpcController) GetMyRoomId(params *json.RawMessage, _ *jrm1.ResponseMe
 
 	return r, nil
 }
-func (rc *RpcController) getMyRoomId(p *rpcm.GetMyRoomIdParams) (result *rpcm.GetMyRoomIdResult, rpcErr *jrm1.RpcError) {
+func (rc *RpcController) getMyRoomId(p *rqrp.GetMyRoomIdParams) (result *rqrp.GetMyRoomIdResult, rpcErr *jrm1.RpcError) {
 	var session *ses.Session
 	session, rpcErr = rc.getUserSession(p.Auth)
 	if rpcErr != nil {
@@ -2012,7 +2013,7 @@ func (rc *RpcController) getMyRoomId(p *rpcm.GetMyRoomIdParams) (result *rpcm.Ge
 			return nil, rpcErr
 		}
 
-		result = &rpcm.GetMyRoomIdResult{RoomId: roomId}
+		result = &rqrp.GetMyRoomIdResult{RoomId: roomId}
 	}
 
 	return result, nil
@@ -2021,13 +2022,13 @@ func (rc *RpcController) getMyRoomId(p *rpcm.GetMyRoomIdParams) (result *rpcm.Ge
 // Message functions.
 
 func (rc *RpcController) AddMessage(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
-	var p *rpcm.AddMessageParams
+	var p *rqrp.AddMessageParams
 	rpcErr = jrm1.ParseParameters(params, &p)
 	if rpcErr != nil {
 		return nil, rpcErr
 	}
 
-	var r *rpcm.AddMessageResult
+	var r *rqrp.AddMessageResult
 	r, rpcErr = rc.addMessage(p)
 	if rpcErr != nil {
 		return nil, rpcErr
@@ -2035,7 +2036,7 @@ func (rc *RpcController) AddMessage(params *json.RawMessage, _ *jrm1.ResponseMet
 
 	return r, nil
 }
-func (rc *RpcController) addMessage(p *rpcm.AddMessageParams) (result *rpcm.AddMessageResult, rpcErr *jrm1.RpcError) {
+func (rc *RpcController) addMessage(p *rqrp.AddMessageParams) (result *rqrp.AddMessageResult, rpcErr *jrm1.RpcError) {
 	var session *ses.Session
 	session, rpcErr = rc.getUserSession(p.Auth)
 	if rpcErr != nil {
@@ -2047,10 +2048,10 @@ func (rc *RpcController) addMessage(p *rpcm.AddMessageParams) (result *rpcm.AddM
 	// Check input data.
 	{
 		if p.RoomId == 0 {
-			return nil, re.NewRpcError_FieldNotSet(rpcm.Field_RoomId)
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_RoomId)
 		}
 		if len(p.MessageText) == 0 {
-			return nil, re.NewRpcError_FieldNotSet(rpcm.Field_MessageText)
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_MessageText)
 		}
 	}
 
@@ -2061,19 +2062,19 @@ func (rc *RpcController) addMessage(p *rpcm.AddMessageParams) (result *rpcm.AddM
 			return nil, rpcErr
 		}
 
-		result = &rpcm.AddMessageResult{Success: rpcm.Success{OK: true}}
+		result = &rqrp.AddMessageResult{Success: rpc.Success{OK: true}}
 	}
 
 	return result, nil
 }
 func (rc *RpcController) ListAllMessages(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
-	var p *rpcm.ListAllMessagesParams
+	var p *rqrp.ListAllMessagesParams
 	rpcErr = jrm1.ParseParameters(params, &p)
 	if rpcErr != nil {
 		return nil, rpcErr
 	}
 
-	var r *rpcm.ListAllMessagesResult
+	var r *rqrp.ListAllMessagesResult
 	r, rpcErr = rc.listAllMessages(p)
 	if rpcErr != nil {
 		return nil, rpcErr
@@ -2081,7 +2082,7 @@ func (rc *RpcController) ListAllMessages(params *json.RawMessage, _ *jrm1.Respon
 
 	return r, nil
 }
-func (rc *RpcController) listAllMessages(p *rpcm.ListAllMessagesParams) (result *rpcm.ListAllMessagesResult, rpcErr *jrm1.RpcError) {
+func (rc *RpcController) listAllMessages(p *rqrp.ListAllMessagesParams) (result *rqrp.ListAllMessagesResult, rpcErr *jrm1.RpcError) {
 	var session *ses.Session
 	session, rpcErr = rc.getUserSession(p.Auth)
 	if rpcErr != nil {
@@ -2093,7 +2094,7 @@ func (rc *RpcController) listAllMessages(p *rpcm.ListAllMessagesParams) (result 
 	// Check input data.
 	{
 		if p.RoomId == 0 {
-			return nil, re.NewRpcError_FieldNotSet(rpcm.Field_RoomId)
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_RoomId)
 		}
 	}
 
@@ -2107,19 +2108,19 @@ func (rc *RpcController) listAllMessages(p *rpcm.ListAllMessagesParams) (result 
 
 		sstts := rc.adc.GetServerStartTimeTS()
 
-		result = &rpcm.ListAllMessagesResult{Messages: lom.NewListOfMessages(p.RoomId, rawMsgs, sstts, nil)}
+		result = &rqrp.ListAllMessagesResult{Messages: lom.NewListOfMessages(p.RoomId, rawMsgs, sstts, nil)}
 	}
 
 	return result, nil
 }
 func (rc *RpcController) ListMessagesSince(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
-	var p *rpcm.ListMessagesSinceParams
+	var p *rqrp.ListMessagesSinceParams
 	rpcErr = jrm1.ParseParameters(params, &p)
 	if rpcErr != nil {
 		return nil, rpcErr
 	}
 
-	var r *rpcm.ListMessagesSinceResult
+	var r *rqrp.ListMessagesSinceResult
 	r, rpcErr = rc.listMessagesSince(p)
 	if rpcErr != nil {
 		return nil, rpcErr
@@ -2127,7 +2128,7 @@ func (rc *RpcController) ListMessagesSince(params *json.RawMessage, _ *jrm1.Resp
 
 	return r, nil
 }
-func (rc *RpcController) listMessagesSince(p *rpcm.ListMessagesSinceParams) (result *rpcm.ListMessagesSinceResult, rpcErr *jrm1.RpcError) {
+func (rc *RpcController) listMessagesSince(p *rqrp.ListMessagesSinceParams) (result *rqrp.ListMessagesSinceResult, rpcErr *jrm1.RpcError) {
 	var session *ses.Session
 	session, rpcErr = rc.getUserSession(p.Auth)
 	if rpcErr != nil {
@@ -2139,10 +2140,10 @@ func (rc *RpcController) listMessagesSince(p *rpcm.ListMessagesSinceParams) (res
 	// Check input data.
 	{
 		if p.RoomId == 0 {
-			return nil, re.NewRpcError_FieldNotSet(rpcm.Field_RoomId)
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_RoomId)
 		}
 		if p.TimeMarkTS == 0 {
-			return nil, re.NewRpcError_FieldNotSet(rpcm.Field_TimeMarkTS)
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_TimeMarkTS)
 		}
 	}
 
@@ -2156,20 +2157,20 @@ func (rc *RpcController) listMessagesSince(p *rpcm.ListMessagesSinceParams) (res
 
 		sstts := rc.adc.GetServerStartTimeTS()
 
-		result = &rpcm.ListMessagesSinceResult{Messages: lom.NewListOfMessages(p.RoomId, rawMsgs, sstts, &p.TimeMarkTS)}
+		result = &rqrp.ListMessagesSinceResult{Messages: lom.NewListOfMessages(p.RoomId, rawMsgs, sstts, &p.TimeMarkTS)}
 	}
 
 	return result, nil
 }
 
 // Helper functions.
-func (rc *RpcController) getUserSession(auth *rpcm.Auth) (session *ses.Session, rpcErr *jrm1.RpcError) {
+func (rc *RpcController) getUserSession(auth *rpc.Auth) (session *ses.Session, rpcErr *jrm1.RpcError) {
 	if auth == nil {
 		return nil, re.NewRpcError_NotAuthorised(nil)
 	}
 
 	if len(auth.Token) == 0 {
-		return nil, re.NewRpcError_FieldNotSet(rpcm.Field_AuthToken)
+		return nil, re.NewRpcError_FieldNotSet(rpc.Field_AuthToken)
 	}
 
 	session, rpcErr = rc.adc.GetUserSession(auth.Token)

@@ -1,0 +1,34 @@
+package rpc
+
+// List of RPC function names.
+
+const (
+	Func_AddAllowedRoomUser    = "AddAllowedRoomUser"
+	Func_AddMessage            = "AddMessage"
+	Func_AddRoom               = "AddRoom"
+	Func_AddRoomModerator      = "AddRoomModerator"
+	Func_BanUser               = "BanUser"
+	Func_ChangePassword1       = "ChangePassword1"
+	Func_ChangePassword2       = "ChangePassword2"
+	Func_DeleteAllowedRoomUser = "DeleteAllowedRoomUser"
+	Func_DeleteRoom            = "DeleteRoom"
+	Func_DeleteRoomModerator   = "DeleteRoomModerator"
+	Func_EnterRoom             = "EnterRoom"
+	Func_GetMyRoomId           = "GetMyRoomId"
+	Func_LeaveRoom             = "LeaveRoom"
+	Func_ListAllMessages       = "ListAllMessages"
+	Func_ListAllowedRoomUsers  = "ListAllowedRoomUsers"
+	Func_ListMessagesSince     = "ListMessagesSince"
+	Func_ListRoomModerators    = "ListRoomModerators"
+	Func_ListRooms             = "ListRooms"
+	Func_LogIn1                = "LogIn1"
+	Func_LogIn2                = "LogIn2"
+	Func_LogOut1               = "LogOut1"
+	Func_LogOut2               = "LogOut2"
+	Func_Ping                  = "Ping"
+	Func_RegisterUser1         = "RegisterUser1"
+	Func_RegisterUser2         = "RegisterUser2"
+	Func_ResetAllowedRoomUsers = "ResetAllowedRoomUsers"
+	Func_ResetRoomModerators   = "ResetRoomModerators"
+	Func_Version               = "Version"
+)
