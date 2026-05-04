@@ -90,7 +90,7 @@ func NewChat(settingsFilePath string, ver *ver.Versioneer) (c *Chat, err error) 
 		return nil, err
 	}
 
-	c.server, err = server.NewServer(c.settings.Server, c.controls.GetCriticalErrorsChan(), c.rpc.GetProcessor(), serverStartTime)
+	c.server, err = server.NewServer(c.settings.Server, cec, c.rpc.GetProcessor(), serverStartTime)
 	if err != nil {
 		return nil, err
 	}
