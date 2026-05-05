@@ -15,6 +15,7 @@ const (
 	Func_DeleteRoomModerator   = "DeleteRoomModerator"
 	Func_EnterRoom             = "EnterRoom"
 	Func_GetMyRoomId           = "GetMyRoomId"
+	Func_IsMeAdministrator     = "IsMeAdministrator"
 	Func_LeaveRoom             = "LeaveRoom"
 	Func_ListAllMessages       = "ListAllMessages"
 	Func_ListAllowedRoomUsers  = "ListAllowedRoomUsers"

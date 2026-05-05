@@ -87,6 +87,7 @@ func (rc *RpcController) GetRpcFunctions() []jrm1.RpcFunction {
 		rc.ChangePassword1,
 		rc.ChangePassword2,
 		rc.BanUser,
+		rc.IsMeAdministrator,
 
 		// Room functions.
 		rc.AddRoom,
@@ -1127,6 +1128,33 @@ func (rc *RpcController) banUser(p *rqrp.BanUserParams) (result *rqrp.BanUserRes
 	}
 
 	result = &rqrp.BanUserResult{Success: rpc.Success{OK: true}}
+	return result, nil
+}
+func (rc *RpcController) IsMeAdministrator(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
+	var p *rqrp.IsMeAdministratorParams
+	rpcErr = jrm1.ParseParameters(params, &p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	var r *rqrp.IsMeAdministratorResult
+	r, rpcErr = rc.isMeAdministrator(p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	return r, nil
+}
+func (rc *RpcController) isMeAdministrator(p *rqrp.IsMeAdministratorParams) (result *rqrp.IsMeAdministratorResult, rpcErr *jrm1.RpcError) {
+	var session *ses.Session
+	session, rpcErr = rc.getUserSession(p.Auth)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	result = &rqrp.IsMeAdministratorResult{
+		IsAdministrator: rc.chatUserSettings.IsUserAdministrator(session.UserId),
+	}
 	return result, nil
 }
 
