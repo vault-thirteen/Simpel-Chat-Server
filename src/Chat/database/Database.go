@@ -608,3 +608,19 @@ func (db *Database) ResetAllowedRoomUsers(room *rm.Room) (err error) {
 
 	return nil
 }
+func (db *Database) CountAllUsers() (n int, err error) {
+	var count int64
+	tx := db.gormDb.Model(&usr.User{}).Count(&count)
+	if tx.Error != nil {
+		return -1, tx.Error
+	}
+
+	return int(count), nil
+}
+func (db *Database) ListUsers(pageSize int, pageNumber int) (users []*usr.User, err error) {
+	tx := db.gormDb.Limit(pageSize).Offset((pageNumber - 1) * pageSize).Find(&users)
+	if tx.Error != nil {
+		return nil, tx.Error
+	}
+	return users, nil
+}

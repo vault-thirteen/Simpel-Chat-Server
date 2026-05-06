@@ -51,7 +51,8 @@
       "registrationRequestTtl": 300,
       "sessionCountMax": 1024,
       "tokenLength": 16,
-      "inactivityDurationMaxSec": 300
+      "inactivityDurationMaxSec": 300,
+      "pageSizeMax": 100
     }
   }
 }

@@ -32,11 +32,12 @@ func NewRPC(
 	der *der.DatabaseErrorReporter,
 	chatUserSettings *settings.ChatUserSettings,
 	chatServerName string,
+	pageSizeMax int,
 ) (rpc *RPC, err error) {
 	rpc = new(RPC)
 
 	// Controller.
-	rpc.controller = NewRpcController(chatFamilyName, v, db, mailer, generator, adc, der, chatUserSettings, chatServerName)
+	rpc.controller = NewRpcController(chatFamilyName, v, db, mailer, generator, adc, der, chatUserSettings, chatServerName, pageSizeMax)
 
 	// Processor.
 	{

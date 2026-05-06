@@ -3,6 +3,7 @@ package rpc
 import (
 	"encoding/json"
 	"errors"
+	"math"
 	"time"
 
 	jrm1 "github.com/vault-thirteen/JSON-RPC-M1"
@@ -45,6 +46,7 @@ type RpcController struct {
 	der              *der.DatabaseErrorReporter
 	chatUserSettings *settings.ChatUserSettings
 	chatServerName   string
+	pageSizeMax      int
 }
 
 func NewRpcController(
@@ -57,6 +59,7 @@ func NewRpcController(
 	der *der.DatabaseErrorReporter,
 	chatUserSettings *settings.ChatUserSettings,
 	chatServerName string,
+	pageSizeMax int,
 ) (rc *RpcController) {
 	rc = &RpcController{
 		chatFamilyName:   chatFamilyName,
@@ -68,6 +71,7 @@ func NewRpcController(
 		der:              der,
 		chatUserSettings: chatUserSettings,
 		chatServerName:   chatServerName,
+		pageSizeMax:      pageSizeMax,
 	}
 
 	return rc
@@ -119,6 +123,10 @@ func (rc *RpcController) GetRpcFunctions() []jrm1.RpcFunction {
 		rc.AddMessage,
 		rc.ListAllMessages,
 		rc.ListMessagesSince,
+
+		// User functions.
+		rc.GetUser,
+		rc.ListUsers,
 	}
 }
 
@@ -847,7 +855,7 @@ func (rc *RpcController) changePassword1(p *rqrp.ChangePassword1Params) (result 
 	session.TouchLastActivityTime()
 
 	var user *usr.User
-	user, rpcErr = rc.getUser(session)
+	user, rpcErr = rc.getUserBySession(session)
 	if rpcErr != nil {
 		return nil, rpcErr
 	}
@@ -1078,7 +1086,7 @@ func (rc *RpcController) banUser(p *rqrp.BanUserParams) (result *rqrp.BanUserRes
 	session.TouchLastActivityTime()
 
 	var user *usr.User
-	user, rpcErr = rc.getUser(session)
+	user, rpcErr = rc.getUserBySession(session)
 	if rpcErr != nil {
 		return nil, rpcErr
 	}
@@ -1221,7 +1229,7 @@ func (rc *RpcController) addRoom(p *rqrp.AddRoomParams) (result *rqrp.AddRoomRes
 	session.TouchLastActivityTime()
 
 	var user *usr.User
-	user, rpcErr = rc.getUser(session)
+	user, rpcErr = rc.getUserBySession(session)
 	if rpcErr != nil {
 		return nil, rpcErr
 	}
@@ -1298,7 +1306,7 @@ func (rc *RpcController) deleteRoom(p *rqrp.DeleteRoomParams) (result *rqrp.Dele
 	session.TouchLastActivityTime()
 
 	var user *usr.User
-	user, rpcErr = rc.getUser(session)
+	user, rpcErr = rc.getUserBySession(session)
 	if rpcErr != nil {
 		return nil, rpcErr
 	}
@@ -1408,7 +1416,7 @@ func (rc *RpcController) addRoomModerator(p *rqrp.AddRoomModeratorParams) (resul
 	session.TouchLastActivityTime()
 
 	var user *usr.User
-	user, rpcErr = rc.getUser(session)
+	user, rpcErr = rc.getUserBySession(session)
 	if rpcErr != nil {
 		return nil, rpcErr
 	}
@@ -1481,7 +1489,7 @@ func (rc *RpcController) deleteRoomModerator(p *rqrp.DeleteRoomModeratorParams) 
 	session.TouchLastActivityTime()
 
 	var user *usr.User
-	user, rpcErr = rc.getUser(session)
+	user, rpcErr = rc.getUserBySession(session)
 	if rpcErr != nil {
 		return nil, rpcErr
 	}
@@ -1554,7 +1562,7 @@ func (rc *RpcController) listRoomModerators(p *rqrp.ListRoomModeratorsParams) (r
 	session.TouchLastActivityTime()
 
 	var user *usr.User
-	user, rpcErr = rc.getUser(session)
+	user, rpcErr = rc.getUserBySession(session)
 	if rpcErr != nil {
 		return nil, rpcErr
 	}
@@ -1611,7 +1619,7 @@ func (rc *RpcController) resetRoomModerators(p *rqrp.ResetRoomModeratorsParams) 
 	session.TouchLastActivityTime()
 
 	var user *usr.User
-	user, rpcErr = rc.getUser(session)
+	user, rpcErr = rc.getUserBySession(session)
 	if rpcErr != nil {
 		return nil, rpcErr
 	}
@@ -1694,7 +1702,7 @@ func (rc *RpcController) addAllowedRoomUser(p *rqrp.AddAllowedRoomUserParams) (r
 	}
 
 	var user *usr.User
-	user, rpcErr = rc.getUser(session)
+	user, rpcErr = rc.getUserBySession(session)
 	if rpcErr != nil {
 		return nil, rpcErr
 	}
@@ -1773,7 +1781,7 @@ func (rc *RpcController) deleteAllowedRoomUser(p *rqrp.DeleteAllowedRoomUserPara
 	}
 
 	var user *usr.User
-	user, rpcErr = rc.getUser(session)
+	user, rpcErr = rc.getUserBySession(session)
 	if rpcErr != nil {
 		return nil, rpcErr
 	}
@@ -1849,7 +1857,7 @@ func (rc *RpcController) listAllowedRoomUsers(p *rqrp.ListAllowedRoomUsersParams
 	}
 
 	var user *usr.User
-	user, rpcErr = rc.getUser(session)
+	user, rpcErr = rc.getUserBySession(session)
 	if rpcErr != nil {
 		return nil, rpcErr
 	}
@@ -1912,7 +1920,7 @@ func (rc *RpcController) resetAllowedRoomUsers(p *rqrp.ResetAllowedRoomUsersPara
 	}
 
 	var user *usr.User
-	user, rpcErr = rc.getUser(session)
+	user, rpcErr = rc.getUserBySession(session)
 	if rpcErr != nil {
 		return nil, rpcErr
 	}
@@ -2227,6 +2235,118 @@ func (rc *RpcController) listMessagesSince(p *rqrp.ListMessagesSinceParams) (res
 	return result, nil
 }
 
+// User functions.
+
+func (rc *RpcController) GetUser(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
+	var p *rqrp.GetUserParams
+	rpcErr = jrm1.ParseParameters(params, &p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	var r *rqrp.GetUserResult
+	r, rpcErr = rc.getUser(p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	return r, nil
+}
+func (rc *RpcController) getUser(p *rqrp.GetUserParams) (result *rqrp.GetUserResult, rpcErr *jrm1.RpcError) {
+	var session *ses.Session
+	session, rpcErr = rc.getUserSession(p.Auth)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	session.TouchLastActivityTime()
+
+	// Get level of permissions.
+	var isCallerAdministrator = rc.chatUserSettings.IsUserAdministrator(session.UserId)
+
+	// Check input data.
+	{
+		if p.UserId == 0 {
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_UserId)
+		}
+	}
+
+	// Perform an action.
+	{
+		var u = &usr.User{Id: p.UserId}
+		err := rc.db.GetUserById(u)
+		if err != nil {
+			return nil, re.NewRpcError_DatabaseError(err)
+		}
+
+		result = &rqrp.GetUserResult{User: usr.NewUser2(u, isCallerAdministrator)}
+	}
+
+	return result, nil
+}
+func (rc *RpcController) ListUsers(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
+	var p *rqrp.ListUsersParams
+	rpcErr = jrm1.ParseParameters(params, &p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	var r *rqrp.ListUsersResult
+	r, rpcErr = rc.listUsers(p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	return r, nil
+}
+func (rc *RpcController) listUsers(p *rqrp.ListUsersParams) (result *rqrp.ListUsersResult, rpcErr *jrm1.RpcError) {
+	var session *ses.Session
+	session, rpcErr = rc.getUserSession(p.Auth)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	session.TouchLastActivityTime()
+
+	// Get level of permissions.
+	var isCallerAdministrator = rc.chatUserSettings.IsUserAdministrator(session.UserId)
+
+	// Check input data.
+	{
+		if (p.PageSize < 1) || (p.PageSize > rc.pageSizeMax) {
+			return nil, re.NewRpcError_FieldValueIsNotValid(rpc.Field_PageSize)
+		}
+		if p.PageNumber < 1 {
+			return nil, re.NewRpcError_FieldValueIsNotValid(rpc.Field_PageNumber)
+		}
+	}
+
+	// Perform an action.
+	{
+		nAll, err := rc.db.CountAllUsers()
+		if err != nil {
+			return nil, re.NewRpcError_DatabaseError(err)
+		}
+
+		var users []*usr.User
+		users, err = rc.db.ListUsers(p.PageSize, p.PageNumber)
+		if err != nil {
+			return nil, re.NewRpcError_DatabaseError(err)
+		}
+
+		result = &rqrp.ListUsersResult{
+			PageSize:   p.PageSize,
+			PageNumber: p.PageNumber,
+			TotalPages: int(math.Ceil(float64(nAll) / float64(p.PageSize))),
+			TotalItems: nAll,
+			Items:      len(users),
+			Users:      usr.NewUsers2(users, isCallerAdministrator),
+		}
+	}
+
+	return result, nil
+}
+
 // Helper functions.
 func (rc *RpcController) getUserSession(auth *rpc.Auth) (session *ses.Session, rpcErr *jrm1.RpcError) {
 	if auth == nil {
@@ -2244,7 +2364,7 @@ func (rc *RpcController) getUserSession(auth *rpc.Auth) (session *ses.Session, r
 
 	return session, nil
 }
-func (rc *RpcController) getUser(session *ses.Session) (user *usr.User, rpcErr *jrm1.RpcError) {
+func (rc *RpcController) getUserBySession(session *ses.Session) (user *usr.User, rpcErr *jrm1.RpcError) {
 	user = &usr.User{Id: session.UserId}
 	err := rc.db.GetUserById(user)
 	if err != nil {

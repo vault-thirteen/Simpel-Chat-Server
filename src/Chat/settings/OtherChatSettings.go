@@ -12,6 +12,7 @@ type OtherChatSettings struct {
 	SessionCountMax          int   `json:"sessionCountMax"`
 	TokenLength              byte  `json:"tokenLength"`
 	InactivityDurationMaxSec int64 `json:"inactivityDurationMaxSec"`
+	PageSizeMax              int   `json:"pageSizeMax"`
 }
 
 func (s *OtherChatSettings) Validate() (err error) {
@@ -35,6 +36,9 @@ func (s *OtherChatSettings) Validate() (err error) {
 	}
 	if s.InactivityDurationMaxSec == 0 {
 		return helper.NewError_ParameterIsNotSet("maximum inactivity duration (in seconds)")
+	}
+	if s.PageSizeMax == 0 {
+		return helper.NewError_ParameterIsNotSet("maximum page size")
 	}
 
 	return nil

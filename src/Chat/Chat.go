@@ -85,7 +85,10 @@ func NewChat(settingsFilePath string, ver *ver.Versioneer) (c *Chat, err error) 
 		return nil, err
 	}
 
-	c.rpc, err = rpc.NewRPC(c.chatFamilyName, c.ver, c.database, c.mailer, c.generator, c.adc, der.NewDatabaseErrorReporter(cec), c.settings.Users, c.settings.Server.Name)
+	c.rpc, err = rpc.NewRPC(c.chatFamilyName, c.ver, c.database, c.mailer,
+		c.generator, c.adc, der.NewDatabaseErrorReporter(cec), c.settings.Users,
+		c.settings.Server.Name, c.settings.Other.PageSizeMax,
+	)
 	if err != nil {
 		return nil, err
 	}

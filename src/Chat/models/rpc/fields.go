@@ -13,4 +13,6 @@ const (
 	Field_RoomId           = "Room ID"
 	Field_MessageText      = "Message Text"
 	Field_TimeMarkTS       = "Time Mark Timestamp"
+	Field_PageSize         = "Page Size"
+	Field_PageNumber       = "Page Number"
 )
