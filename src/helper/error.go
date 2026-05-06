@@ -32,6 +32,7 @@ const (
 	Err_UserIsNotAllowedToUseThisRoom    = "user is not allowed to use this room"
 	Err_UnknownRoomType                  = "unknown room type"
 	Err_MessageIsTooLong                 = "message is too long"
+	Err_NameIsTooLong                    = "name is too long"
 )
 
 func NewError_Simple2SA(format string, value any) error {

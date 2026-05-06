@@ -16,7 +16,7 @@ type Room struct {
 	common.MetaData
 	Id   common.ObjectId `json:"id" gorm:"primarykey"`
 	Type enum.RoomType   `json:"type" gorm:"column:type;type:tinyint"`
-	Name string          `json:"name" gorm:"unique"`
+	Name string          `json:"name" gorm:"unique;size:255"`
 
 	// IDs of users, who may change the list of allowed users of the chat room.
 	Moderators *common.IdList `json:"moderators" gorm:"column:moderators"`
@@ -80,6 +80,10 @@ func (r *Room) Validate() (err error) {
 
 	if len(r.Name) == 0 {
 		return helper.NewError_ParameterIsNotSet("room name")
+	}
+
+	if len(r.Name) > r.parameters.RoomNameLengthLimit() {
+		return helper.NewError_GenericError(helper.Err_NameIsTooLong, len(r.Name))
 	}
 
 	if r.parameters == nil {

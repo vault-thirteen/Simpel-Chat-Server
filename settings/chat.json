@@ -35,7 +35,8 @@
     "message": {
       "roomCountMax": 16,
       "roomMessageCountMax": 255,
-      "messageSizeMax": 255
+      "messageSizeMax": 255,
+      "roomNameLengthMax": 255
     },
     "users": {
       "administratorIds": [

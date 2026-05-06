@@ -44,7 +44,7 @@ func NewActiveDataController(
 		return nil, err
 	}
 
-	commonRoomParameters := rp.NewRoomParameters(cs.Message.RoomMessageCountMax, cs.Message.MessageSizeMax)
+	commonRoomParameters := rp.NewRoomParameters(cs.Message.RoomMessageCountMax, cs.Message.MessageSizeMax, cs.Message.RoomNameLengthMax)
 
 	adc.rooms, err = rs.NewRooms(db, der, criticalErrorsChan, cs.Message.RoomCountMax, commonRoomParameters, serverStartTimeTS)
 	if err != nil {

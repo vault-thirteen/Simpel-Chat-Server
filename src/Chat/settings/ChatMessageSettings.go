@@ -10,6 +10,7 @@ type ChatMessageSettings struct {
 	RoomCountMax        int `json:"roomCountMax"`
 	RoomMessageCountMax int `json:"roomMessageCountMax"`
 	MessageSizeMax      int `json:"messageSizeMax"`
+	RoomNameLengthMax   int `json:"roomNameLengthMax"`
 }
 
 func (s *ChatMessageSettings) Validate() (err error) {
@@ -27,6 +28,10 @@ func (s *ChatMessageSettings) Validate() (err error) {
 
 	if s.MessageSizeMax == 0 {
 		return helper.NewError_ParameterIsNotSet("message size limit")
+	}
+
+	if s.RoomNameLengthMax == 0 {
+		return helper.NewError_ParameterIsNotSet("room name length limit")
 	}
 
 	return nil
