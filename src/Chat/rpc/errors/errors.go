@@ -39,6 +39,7 @@ const (
 	Code_RoomIsNotFound                    = 27
 	Code_UserIsNotAllowedInTheRoom         = 28
 	Code_SessionHasTimedOut                = 29
+	Code_ShortStringIsTooLong              = 30
 )
 
 // RPC error messages.
@@ -72,6 +73,7 @@ const (
 	Msg_RoomIsNotFound                    = "room is not found"
 	Msg_UserIsNotAllowedInTheRoom         = "user is not allowed in this room"
 	Msg_SessionHasTimedOut                = "session has timed out"
+	Msg_ShortStringIsTooLong              = "short string is too long"
 )
 
 func NewRpcError_DatabaseError(err error) (re *jrm1.RpcError) {
@@ -160,4 +162,7 @@ func NewRpcError_Msg_UserIsNotAllowedInTheRoom(err error) (re *jrm1.RpcError) {
 }
 func NewRpcError_SessionHasTimedOut(err error) (re *jrm1.RpcError) {
 	return jrm1.NewRpcErrorByUser(Code_SessionHasTimedOut, Msg_SessionHasTimedOut, fe.NewFlexibleError(err).Value())
+}
+func NewRpcError_ShortStringIsTooLong(err error) (re *jrm1.RpcError) {
+	return jrm1.NewRpcErrorByUser(Code_ShortStringIsTooLong, Msg_ShortStringIsTooLong, fe.NewFlexibleError(err).Value())
 }

@@ -31,6 +31,10 @@ import (
 	"github.com/vault-thirteen/Simpel-Chat-Server/src/helper"
 )
 
+const (
+	ShortStringLenMax = 255
+)
+
 type RpcController struct {
 	chatFamilyName   string
 	ver              *ver.Versioneer
@@ -168,6 +172,9 @@ func (rc *RpcController) registerUser1(p *rqrp.RegisterUser1Params) (result *rqr
 		if len(p.EMailAddress) == 0 {
 			return nil, re.NewRpcError_FieldNotSet(rpc.Field_EMailAddress)
 		}
+		if !usr.IsUserEmailLenValid(p.EMailAddress) {
+			return nil, re.NewRpcError_FieldValueIsNotValid(rpc.Field_EMailAddress)
+		}
 		if !helper.IsEmailAddressValid(p.EMailAddress) {
 			return nil, re.NewRpcError_FieldValueIsNotValid(rpc.Field_EMailAddress)
 		}
@@ -259,6 +266,9 @@ func (rc *RpcController) registerUser2(p *rqrp.RegisterUser2Params) (result *rqr
 		if len(p.EMailAddress) == 0 {
 			return nil, re.NewRpcError_FieldNotSet(rpc.Field_EMailAddress)
 		}
+		if !usr.IsUserEmailLenValid(p.EMailAddress) {
+			return nil, re.NewRpcError_FieldValueIsNotValid(rpc.Field_EMailAddress)
+		}
 		if !helper.IsEmailAddressValid(p.EMailAddress) {
 			return nil, re.NewRpcError_FieldValueIsNotValid(rpc.Field_EMailAddress)
 		}
@@ -271,7 +281,7 @@ func (rc *RpcController) registerUser2(p *rqrp.RegisterUser2Params) (result *rqr
 		if len(p.UserName) == 0 {
 			return nil, re.NewRpcError_FieldNotSet(rpc.Field_UserName)
 		}
-		if !usr.IsUserNameValid(p.UserName) {
+		if !usr.IsUserNameLenValid(p.UserName) {
 			return nil, re.NewRpcError_FieldValueIsNotValid(rpc.Field_UserName)
 		}
 		if len(p.UserPassword) == 0 {
@@ -279,6 +289,11 @@ func (rc *RpcController) registerUser2(p *rqrp.RegisterUser2Params) (result *rqr
 		}
 		if !pwd.IsPasswordValid(p.UserPassword) {
 			return nil, re.NewRpcError_FieldValueIsNotValid(rpc.Field_UserPassword)
+		}
+
+		rpcErr = rc.checkShortStringsLen([]string{p.VerificationCode, p.RequestId})
+		if rpcErr != nil {
+			return nil, rpcErr
 		}
 	}
 
@@ -381,6 +396,9 @@ func (rc *RpcController) logIn1(p *rqrp.LogIn1Params) (result *rqrp.LogIn1Result
 	{
 		if len(p.EMailAddress) == 0 {
 			return nil, re.NewRpcError_FieldNotSet(rpc.Field_EMailAddress)
+		}
+		if !usr.IsUserEmailLenValid(p.EMailAddress) {
+			return nil, re.NewRpcError_FieldValueIsNotValid(rpc.Field_EMailAddress)
 		}
 		if !helper.IsEmailAddressValid(p.EMailAddress) {
 			return nil, re.NewRpcError_FieldValueIsNotValid(rpc.Field_EMailAddress)
@@ -503,6 +521,9 @@ func (rc *RpcController) logIn2(p *rqrp.LogIn2Params) (result *rqrp.LogIn2Result
 		if len(p.EMailAddress) == 0 {
 			return nil, re.NewRpcError_FieldNotSet(rpc.Field_EMailAddress)
 		}
+		if !usr.IsUserEmailLenValid(p.EMailAddress) {
+			return nil, re.NewRpcError_FieldValueIsNotValid(rpc.Field_EMailAddress)
+		}
 		if !helper.IsEmailAddressValid(p.EMailAddress) {
 			return nil, re.NewRpcError_FieldValueIsNotValid(rpc.Field_EMailAddress)
 		}
@@ -517,6 +538,11 @@ func (rc *RpcController) logIn2(p *rqrp.LogIn2Params) (result *rqrp.LogIn2Result
 		}
 		if !pwd.IsPasswordValid(p.UserPassword) {
 			return nil, re.NewRpcError_FieldValueIsNotValid(rpc.Field_UserPassword)
+		}
+
+		rpcErr = rc.checkShortStringsLen([]string{p.VerificationCode, p.RequestId})
+		if rpcErr != nil {
+			return nil, rpcErr
 		}
 	}
 
@@ -737,6 +763,11 @@ func (rc *RpcController) logOut2(p *rqrp.LogOut2Params) (result *rqrp.LogOut2Res
 		if len(p.RequestId) == 0 {
 			return nil, re.NewRpcError_FieldNotSet(rpc.Field_RequestId)
 		}
+
+		rpcErr = rc.checkShortStringsLen([]string{p.RequestId})
+		if rpcErr != nil {
+			return nil, rpcErr
+		}
 	}
 
 	var lor *rq.LogOut
@@ -906,6 +937,11 @@ func (rc *RpcController) changePassword2(p *rqrp.ChangePassword2Params) (result 
 		}
 		if p.NewUserPassword1 != p.NewUserPassword2 {
 			return nil, re.NewRpcError_NewPasswordsAreDifferent(nil)
+		}
+
+		rpcErr = rc.checkShortStringsLen([]string{p.VerificationCode, p.RequestId})
+		if rpcErr != nil {
+			return nil, rpcErr
 		}
 	}
 
@@ -2237,4 +2273,13 @@ func (rc *RpcController) getUserWithPassword(session *ses.Session) (user *usr.Us
 	}
 
 	return user, nil
+}
+func (rc *RpcController) checkShortStringsLen(ss []string) (rpcErr *jrm1.RpcError) {
+	for _, s := range ss {
+		if len(s) > ShortStringLenMax {
+			return re.NewRpcError_ShortStringIsTooLong(nil)
+		}
+	}
+
+	return nil
 }

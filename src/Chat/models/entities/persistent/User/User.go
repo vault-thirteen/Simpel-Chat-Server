@@ -9,8 +9,10 @@ import (
 )
 
 const (
-	UserNameLengthMin = 1
-	UserNameLengthMax = 255
+	UserNameLengthMin  = 1
+	UserNameLengthMax  = 255
+	UserEmailLengthMin = 1
+	UserEmailLengthMax = 255
 )
 
 type User struct {
@@ -32,10 +34,19 @@ type User struct {
 	IsBanned bool `gorm:"column:isBanned"`
 }
 
-func IsUserNameValid(name string) bool {
+func IsUserNameLenValid(name string) bool {
 	l := helper.GetStringLengthInBytes(name)
 
 	if (l < UserNameLengthMin) || (l > UserNameLengthMax) {
+		return false
+	}
+
+	return true
+}
+func IsUserEmailLenValid(email string) bool {
+	l := helper.GetStringLengthInBytes(email)
+
+	if (l < UserEmailLengthMin) || (l > UserEmailLengthMax) {
 		return false
 	}
 
