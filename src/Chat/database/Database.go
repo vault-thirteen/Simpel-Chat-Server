@@ -618,7 +618,7 @@ func (db *Database) CountAllUsers() (n int, err error) {
 	return int(count), nil
 }
 func (db *Database) ListUsers(pageSize int, pageNumber int) (users []*usr.User, err error) {
-	tx := db.gormDb.Limit(pageSize).Offset((pageNumber - 1) * pageSize).Find(&users)
+	tx := db.gormDb.Order("id asc").Limit(pageSize).Offset((pageNumber - 1) * pageSize).Find(&users)
 	if tx.Error != nil {
 		return nil, tx.Error
 	}
