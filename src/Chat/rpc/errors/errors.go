@@ -33,14 +33,13 @@ const (
 	Code_CanNotBanOneself                  = 21
 	Code_RoomCountLimit                    = 22
 	Code_RoomError                         = 23
-	Code_InvalidInputData                  = 24
-	Code_UserCanNotUseMultipleRooms        = 25
-	Code_UserIsNotUsingAnyRoom             = 26
-	Code_RoomDoesNotExist                  = 27
-	Code_RoomIsNotFound                    = 28
-	Code_UserIsNotAllowedInTheRoom         = 29
-	Code_SessionHasTimedOut                = 30
-	Code_ShortStringIsTooLong              = 31
+	Code_UserCanNotUseMultipleRooms        = 24
+	Code_UserIsNotUsingAnyRoom             = 25
+	Code_RoomDoesNotExist                  = 26
+	Code_RoomIsNotFound                    = 27
+	Code_UserIsNotAllowedInTheRoom         = 28
+	Code_SessionHasTimedOut                = 29
+	Code_ShortStringIsTooLong              = 30
 )
 
 // RPC error messages.
@@ -68,7 +67,6 @@ const (
 	Msg_CanNotBanOneself                  = "can not ban oneself"
 	Msg_RoomCountLimit                    = "room count limit"
 	Msg_RoomError                         = "room error"
-	Msg_InvalidInputData                  = "invalid input data"
 	Msg_UserCanNotUseMultipleRooms        = "user can not use more than one room at the same time"
 	Msg_UserIsNotUsingAnyRoom             = "user is not using any room"
 	Msg_RoomDoesNotExist                  = "room does not exist"
@@ -146,9 +144,6 @@ func NewRpcError_RoomCountLimit(err error) (re *jrm1.RpcError) {
 }
 func NewRpcError_RoomError(err error) (re *jrm1.RpcError) {
 	return jrm1.NewRpcErrorByUser(Code_RoomError, Msg_RoomError, fe.NewFlexibleError(err).Value())
-}
-func NewRpcError_Code_InvalidInputData(err error) (re *jrm1.RpcError) {
-	return jrm1.NewRpcErrorByUser(Code_InvalidInputData, Msg_InvalidInputData, fe.NewFlexibleError(err).Value())
 }
 func NewRpcError_UserCanNotUseMultipleRooms(err error) (re *jrm1.RpcError) {
 	return jrm1.NewRpcErrorByUser(Code_UserCanNotUseMultipleRooms, Msg_UserCanNotUseMultipleRooms, fe.NewFlexibleError(err).Value())
