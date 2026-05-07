@@ -10,6 +10,4 @@ type EnterRoomParams struct {
 	RoomId common.ObjectId `json:"roomId,omitempty"`
 }
 
-type EnterRoomResult struct {
-	rpc.Success
-}
+type EnterRoomResult struct{}

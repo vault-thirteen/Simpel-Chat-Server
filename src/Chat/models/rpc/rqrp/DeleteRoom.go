@@ -10,6 +10,4 @@ type DeleteRoomParams struct {
 	RoomId common.ObjectId `json:"roomId,omitempty"`
 }
 
-type DeleteRoomResult struct {
-	rpc.Success
-}
+type DeleteRoomResult struct{}

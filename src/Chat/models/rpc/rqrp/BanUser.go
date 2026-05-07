@@ -10,6 +10,4 @@ type BanUserParams struct {
 	UserId common.ObjectId `json:"userId" gorm:"uniqueIndex"`
 }
 
-type BanUserResult struct {
-	rpc.Success
-}
+type BanUserResult struct{}

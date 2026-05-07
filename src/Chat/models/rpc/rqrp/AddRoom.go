@@ -13,6 +13,5 @@ type AddRoomParams struct {
 }
 
 type AddRoomResult struct {
-	rpc.Success
 	RoomId common.ObjectId `json:"roomId,omitempty"`
 }

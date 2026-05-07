@@ -11,6 +11,4 @@ type AddMessageParams struct {
 	MessageText string          `json:"messageText,omitempty"`
 }
 
-type AddMessageResult struct {
-	rpc.Success
-}
+type AddMessageResult struct{}

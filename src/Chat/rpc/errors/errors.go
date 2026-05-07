@@ -10,40 +10,42 @@ import (
 
 // RPC error codes.
 const (
-	Code_DatabaseError                     = 1
-	Code_FieldIsNotSet                     = 2
-	Code_FieldValueIsNotValid              = 3
-	Code_RequestIdGenerator                = 4
-	Code_VerificationCodeGenerator         = 5
-	Code_TokenGenerator                    = 6
-	Code_MailerError                       = 7
-	Code_RegistrationIsDisabled            = 8
-	Code_ActionIsNotPermitted              = 9
-	Code_UserIsBanned                      = 10
-	Code_SessionAlreadyExists              = 11
-	Code_WrongPassword                     = 12
-	Code_SessionCountLimit                 = 13
-	Code_ActiveDataController              = 14
-	Code_NotAuthorised                     = 15
-	Code_SessionIsNotFound                 = 16
-	Code_UserIsNotFound                    = 17
-	Code_NewPasswordsAreDifferent          = 18
-	Code_NewPasswordMustDifferFromExisting = 19
-	Code_CanNotBanOneself                  = 20
-	Code_RoomCountLimit                    = 21
-	Code_RoomError                         = 22
-	Code_InvalidInputData                  = 23
-	Code_UserCanNotUseMultipleRooms        = 24
-	Code_UserIsNotUsingAnyRoom             = 25
-	Code_RoomDoesNotExist                  = 26
-	Code_RoomIsNotFound                    = 27
-	Code_UserIsNotAllowedInTheRoom         = 28
-	Code_SessionHasTimedOut                = 29
-	Code_ShortStringIsTooLong              = 30
+	Code_Failure                           = 1
+	Code_DatabaseError                     = 2
+	Code_FieldIsNotSet                     = 3
+	Code_FieldValueIsNotValid              = 4
+	Code_RequestIdGenerator                = 5
+	Code_VerificationCodeGenerator         = 6
+	Code_TokenGenerator                    = 7
+	Code_MailerError                       = 8
+	Code_RegistrationIsDisabled            = 9
+	Code_ActionIsNotPermitted              = 10
+	Code_UserIsBanned                      = 11
+	Code_SessionAlreadyExists              = 12
+	Code_WrongPassword                     = 13
+	Code_SessionCountLimit                 = 14
+	Code_ActiveDataController              = 15
+	Code_NotAuthorised                     = 16
+	Code_SessionIsNotFound                 = 17
+	Code_UserIsNotFound                    = 18
+	Code_NewPasswordsAreDifferent          = 19
+	Code_NewPasswordMustDifferFromExisting = 20
+	Code_CanNotBanOneself                  = 21
+	Code_RoomCountLimit                    = 22
+	Code_RoomError                         = 23
+	Code_InvalidInputData                  = 24
+	Code_UserCanNotUseMultipleRooms        = 25
+	Code_UserIsNotUsingAnyRoom             = 26
+	Code_RoomDoesNotExist                  = 27
+	Code_RoomIsNotFound                    = 28
+	Code_UserIsNotAllowedInTheRoom         = 29
+	Code_SessionHasTimedOut                = 30
+	Code_ShortStringIsTooLong              = 31
 )
 
 // RPC error messages.
 const (
+	Msg_Failure                           = "failure"
 	Msg_DatabaseError                     = "database error"
 	MsgF_FieldIsNotSet                    = "field is not set: %s"
 	MsgF_FieldValueIsNotValid             = "field value is not valid: %s"
@@ -76,6 +78,9 @@ const (
 	Msg_ShortStringIsTooLong              = "short string is too long"
 )
 
+func NewRpcError_Failure(err error) (re *jrm1.RpcError) {
+	return jrm1.NewRpcErrorByUser(Code_Failure, Msg_Failure, fe.NewFlexibleError(err).Value())
+}
 func NewRpcError_DatabaseError(err error) (re *jrm1.RpcError) {
 	return jrm1.NewRpcErrorByUser(Code_DatabaseError, Msg_DatabaseError, fe.NewFlexibleError(err).Value())
 }

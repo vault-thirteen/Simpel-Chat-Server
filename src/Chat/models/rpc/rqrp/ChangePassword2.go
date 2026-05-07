@@ -13,6 +13,4 @@ type ChangePassword2Params struct {
 	NewUserPassword2 string    `json:"newUserPassword2"`
 }
 
-type ChangePassword2Result struct {
-	rpc.Success
-}
+type ChangePassword2Result struct{}

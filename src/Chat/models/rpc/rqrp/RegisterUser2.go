@@ -1,9 +1,5 @@
 package rqrp
 
-import (
-	"github.com/vault-thirteen/Simpel-Chat-Server/src/Chat/models/rpc"
-)
-
 type RegisterUser2Params struct {
 	EMailAddress     string `json:"email"`
 	RequestId        string `json:"requestId"`
@@ -12,6 +8,4 @@ type RegisterUser2Params struct {
 	UserPassword     string `json:"userPassword"`
 }
 
-type RegisterUser2Result struct {
-	rpc.Success
-}
+type RegisterUser2Result struct{}

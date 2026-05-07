@@ -11,6 +11,4 @@ type AddAllowedRoomUserParams struct {
 	UserId common.ObjectId `json:"userId,omitempty"`
 }
 
-type AddAllowedRoomUserResult struct {
-	rpc.Success
-}
+type AddAllowedRoomUserResult struct{}

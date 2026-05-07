@@ -10,6 +10,4 @@ type ResetRoomModeratorsParams struct {
 	RoomId common.ObjectId `json:"roomId,omitempty"`
 }
 
-type ResetRoomModeratorsResult struct {
-	rpc.Success
-}
+type ResetRoomModeratorsResult struct{}

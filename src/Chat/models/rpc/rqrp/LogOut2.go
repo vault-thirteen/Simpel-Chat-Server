@@ -9,6 +9,4 @@ type LogOut2Params struct {
 	RequestId string    `json:"requestId"`
 }
 
-type LogOut2Result struct {
-	rpc.Success
-}
+type LogOut2Result struct{}

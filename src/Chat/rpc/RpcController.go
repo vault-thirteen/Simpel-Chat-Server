@@ -133,9 +133,7 @@ func (rc *RpcController) GetRpcFunctions() []jrm1.RpcFunction {
 // Ping.
 
 func (rc *RpcController) Ping(_ *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
-	return rqrp.PingResult{
-		Success: rpc.Success{OK: true},
-	}, nil
+	return rqrp.PingResult{}, nil
 }
 
 // Version & Name.
@@ -317,8 +315,7 @@ func (rc *RpcController) registerUser2(p *rqrp.RegisterUser2Params) (result *rqr
 					return nil, re.NewRpcError_RequestIdGenerator(err)
 				}
 
-				result = &rqrp.RegisterUser2Result{Success: rpc.Success{OK: false}}
-				return result, nil
+				return nil, re.NewRpcError_Failure(nil)
 			}
 
 			return nil, rc.der.DatabaseError(err)
@@ -330,8 +327,7 @@ func (rc *RpcController) registerUser2(p *rqrp.RegisterUser2Params) (result *rqr
 				return nil, re.NewRpcError_RequestIdGenerator(err)
 			}
 
-			result = &rqrp.RegisterUser2Result{Success: rpc.Success{OK: false}}
-			return result, nil
+			return nil, re.NewRpcError_Failure(nil)
 		}
 	}
 
@@ -381,8 +377,7 @@ func (rc *RpcController) registerUser2(p *rqrp.RegisterUser2Params) (result *rqr
 		}
 	}
 
-	result = &rqrp.RegisterUser2Result{Success: rpc.Success{OK: true}}
-	return result, nil
+	return &rqrp.RegisterUser2Result{}, nil
 }
 func (rc *RpcController) LogIn1(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
 	var p *rqrp.LogIn1Params
@@ -568,8 +563,7 @@ func (rc *RpcController) logIn2(p *rqrp.LogIn2Params) (result *rqrp.LogIn2Result
 				return nil, re.NewRpcError_RequestIdGenerator(err)
 			}
 
-			result = &rqrp.LogIn2Result{Success: rpc.Success{OK: false}}
-			return result, nil
+			return nil, re.NewRpcError_Failure(nil)
 		}
 	}
 
@@ -599,8 +593,7 @@ func (rc *RpcController) logIn2(p *rqrp.LogIn2Params) (result *rqrp.LogIn2Result
 				return nil, re.NewRpcError_RequestIdGenerator(err)
 			}
 
-			result = &rqrp.LogIn2Result{Success: rpc.Success{OK: false}}
-			return result, nil
+			return nil, re.NewRpcError_Failure(nil)
 		}
 	}
 
@@ -616,8 +609,7 @@ func (rc *RpcController) logIn2(p *rqrp.LogIn2Params) (result *rqrp.LogIn2Result
 					return nil, re.NewRpcError_RequestIdGenerator(err)
 				}
 
-				result = &rqrp.LogIn2Result{Success: rpc.Success{OK: false}}
-				return result, nil
+				return nil, re.NewRpcError_Failure(nil)
 			}
 
 			return nil, rc.der.DatabaseError(err)
@@ -629,8 +621,7 @@ func (rc *RpcController) logIn2(p *rqrp.LogIn2Params) (result *rqrp.LogIn2Result
 				return nil, re.NewRpcError_RequestIdGenerator(err)
 			}
 
-			result = &rqrp.LogIn2Result{Success: rpc.Success{OK: false}}
-			return result, nil
+			return nil, re.NewRpcError_Failure(nil)
 		}
 	}
 
@@ -692,8 +683,7 @@ func (rc *RpcController) logIn2(p *rqrp.LogIn2Params) (result *rqrp.LogIn2Result
 	}
 
 	result = &rqrp.LogIn2Result{
-		Token:   *token,
-		Success: rpc.Success{OK: true},
+		Token: *token,
 	}
 	return result, nil
 }
@@ -795,8 +785,7 @@ func (rc *RpcController) logOut2(p *rqrp.LogOut2Params) (result *rqrp.LogOut2Res
 				return nil, re.NewRpcError_RequestIdGenerator(err)
 			}
 
-			result = &rqrp.LogOut2Result{Success: rpc.Success{OK: false}}
-			return result, nil
+			return nil, re.NewRpcError_Failure(nil)
 		}
 	}
 
@@ -827,8 +816,7 @@ func (rc *RpcController) logOut2(p *rqrp.LogOut2Params) (result *rqrp.LogOut2Res
 		}
 	}
 
-	result = &rqrp.LogOut2Result{Success: rpc.Success{OK: true}}
-	return result, nil
+	return &rqrp.LogOut2Result{}, nil
 }
 func (rc *RpcController) ChangePassword1(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
 	var p *rqrp.ChangePassword1Params
@@ -980,8 +968,7 @@ func (rc *RpcController) changePassword2(p *rqrp.ChangePassword2Params) (result 
 					return nil, re.NewRpcError_RequestIdGenerator(err)
 				}
 
-				result = &rqrp.ChangePassword2Result{Success: rpc.Success{OK: false}}
-				return result, nil
+				return nil, re.NewRpcError_Failure(nil)
 			}
 
 			return nil, rc.der.DatabaseError(err)
@@ -993,8 +980,7 @@ func (rc *RpcController) changePassword2(p *rqrp.ChangePassword2Params) (result 
 				return nil, re.NewRpcError_RequestIdGenerator(err)
 			}
 
-			result = &rqrp.ChangePassword2Result{Success: rpc.Success{OK: false}}
-			return result, nil
+			return nil, re.NewRpcError_Failure(nil)
 		}
 	}
 
@@ -1058,8 +1044,7 @@ func (rc *RpcController) changePassword2(p *rqrp.ChangePassword2Params) (result 
 		}
 	}
 
-	result = &rqrp.ChangePassword2Result{Success: rpc.Success{OK: true}}
-	return result, nil
+	return &rqrp.ChangePassword2Result{}, nil
 }
 func (rc *RpcController) BanUser(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
 	var p *rqrp.BanUserParams
@@ -1171,8 +1156,7 @@ func (rc *RpcController) banUser(p *rqrp.BanUserParams) (result *rqrp.BanUserRes
 		}
 	}
 
-	result = &rqrp.BanUserResult{Success: rpc.Success{OK: true}}
-	return result, nil
+	return &rqrp.BanUserResult{}, nil
 }
 func (rc *RpcController) IsMeAdministrator(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
 	var p *rqrp.IsMeAdministratorParams
@@ -1260,8 +1244,7 @@ func (rc *RpcController) addRoom(p *rqrp.AddRoomParams) (result *rqrp.AddRoomRes
 		}
 
 		result = &rqrp.AddRoomResult{
-			Success: rpc.Success{OK: true},
-			RoomId:  roomId,
+			RoomId: roomId,
 		}
 	}
 
@@ -1331,8 +1314,6 @@ func (rc *RpcController) deleteRoom(p *rqrp.DeleteRoomParams) (result *rqrp.Dele
 		if rpcErr != nil {
 			return nil, rpcErr
 		}
-
-		result = &rqrp.DeleteRoomResult{Success: rpc.Success{OK: true}}
 	}
 
 	// Event report.
@@ -1349,7 +1330,7 @@ func (rc *RpcController) deleteRoom(p *rqrp.DeleteRoomParams) (result *rqrp.Dele
 		}
 	}
 
-	return result, nil
+	return &rqrp.DeleteRoomResult{}, nil
 }
 func (rc *RpcController) ListRooms(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
 	var p *rqrp.ListRoomsParams
@@ -1444,8 +1425,6 @@ func (rc *RpcController) addRoomModerator(p *rqrp.AddRoomModeratorParams) (resul
 		if rpcErr != nil {
 			return nil, rpcErr
 		}
-
-		result = &rqrp.AddRoomModeratorResult{Success: rpc.Success{OK: true}}
 	}
 
 	// Event report.
@@ -1462,7 +1441,7 @@ func (rc *RpcController) addRoomModerator(p *rqrp.AddRoomModeratorParams) (resul
 		}
 	}
 
-	return result, nil
+	return &rqrp.AddRoomModeratorResult{}, nil
 }
 func (rc *RpcController) DeleteRoomModerator(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
 	var p *rqrp.DeleteRoomModeratorParams
@@ -1517,8 +1496,6 @@ func (rc *RpcController) deleteRoomModerator(p *rqrp.DeleteRoomModeratorParams) 
 		if rpcErr != nil {
 			return nil, rpcErr
 		}
-
-		result = &rqrp.DeleteRoomModeratorResult{Success: rpc.Success{OK: true}}
 	}
 
 	// Event report.
@@ -1535,7 +1512,7 @@ func (rc *RpcController) deleteRoomModerator(p *rqrp.DeleteRoomModeratorParams) 
 		}
 	}
 
-	return result, nil
+	return &rqrp.DeleteRoomModeratorResult{}, nil
 }
 func (rc *RpcController) ListRoomModerators(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
 	var p *rqrp.ListRoomModeratorsParams
@@ -1644,8 +1621,6 @@ func (rc *RpcController) resetRoomModerators(p *rqrp.ResetRoomModeratorsParams) 
 		if rpcErr != nil {
 			return nil, rpcErr
 		}
-
-		result = &rqrp.ResetRoomModeratorsResult{Success: rpc.Success{OK: true}}
 	}
 
 	// Event report.
@@ -1662,7 +1637,7 @@ func (rc *RpcController) resetRoomModerators(p *rqrp.ResetRoomModeratorsParams) 
 		}
 	}
 
-	return result, nil
+	return &rqrp.ResetRoomModeratorsResult{}, nil
 }
 
 // Allowed Room User functions.
@@ -1726,8 +1701,6 @@ func (rc *RpcController) addAllowedRoomUser(p *rqrp.AddAllowedRoomUserParams) (r
 		if rpcErr != nil {
 			return nil, rpcErr
 		}
-
-		result = &rqrp.AddAllowedRoomUserResult{Success: rpc.Success{OK: true}}
 	}
 
 	// Event report.
@@ -1744,7 +1717,7 @@ func (rc *RpcController) addAllowedRoomUser(p *rqrp.AddAllowedRoomUserParams) (r
 		}
 	}
 
-	return result, nil
+	return &rqrp.AddAllowedRoomUserResult{}, nil
 }
 func (rc *RpcController) DeleteAllowedRoomUser(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
 	var p *rqrp.DeleteAllowedRoomUserParams
@@ -1805,8 +1778,6 @@ func (rc *RpcController) deleteAllowedRoomUser(p *rqrp.DeleteAllowedRoomUserPara
 		if rpcErr != nil {
 			return nil, rpcErr
 		}
-
-		result = &rqrp.DeleteAllowedRoomUserResult{Success: rpc.Success{OK: true}}
 	}
 
 	// Event report.
@@ -1823,7 +1794,7 @@ func (rc *RpcController) deleteAllowedRoomUser(p *rqrp.DeleteAllowedRoomUserPara
 		}
 	}
 
-	return result, nil
+	return &rqrp.DeleteAllowedRoomUserResult{}, nil
 }
 func (rc *RpcController) ListAllowedRoomUsers(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
 	var p *rqrp.ListAllowedRoomUsersParams
@@ -1944,8 +1915,6 @@ func (rc *RpcController) resetAllowedRoomUsers(p *rqrp.ResetAllowedRoomUsersPara
 		if rpcErr != nil {
 			return nil, rpcErr
 		}
-
-		result = &rqrp.ResetAllowedRoomUsersResult{Success: rpc.Success{OK: true}}
 	}
 
 	// Event report.
@@ -1962,7 +1931,7 @@ func (rc *RpcController) resetAllowedRoomUsers(p *rqrp.ResetAllowedRoomUsersPara
 		}
 	}
 
-	return result, nil
+	return &rqrp.ResetAllowedRoomUsersResult{}, nil
 }
 
 // User Room functions.
@@ -2004,11 +1973,9 @@ func (rc *RpcController) enterRoom(p *rqrp.EnterRoomParams) (result *rqrp.EnterR
 		if rpcErr != nil {
 			return nil, rpcErr
 		}
-
-		result = &rqrp.EnterRoomResult{Success: rpc.Success{OK: true}}
 	}
 
-	return result, nil
+	return &rqrp.EnterRoomResult{}, nil
 }
 func (rc *RpcController) LeaveRoom(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
 	var p *rqrp.LeaveRoomParams
@@ -2047,11 +2014,9 @@ func (rc *RpcController) leaveRoom(p *rqrp.LeaveRoomParams) (result *rqrp.LeaveR
 		if rpcErr != nil {
 			return nil, rpcErr
 		}
-
-		result = &rqrp.LeaveRoomResult{Success: rpc.Success{OK: true}}
 	}
 
-	return result, nil
+	return &rqrp.LeaveRoomResult{}, nil
 }
 func (rc *RpcController) GetMyRoomId(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
 	var p *rqrp.GetMyRoomIdParams
@@ -2133,11 +2098,9 @@ func (rc *RpcController) addMessage(p *rqrp.AddMessageParams) (result *rqrp.AddM
 		if rpcErr != nil {
 			return nil, rpcErr
 		}
-
-		result = &rqrp.AddMessageResult{Success: rpc.Success{OK: true}}
 	}
 
-	return result, nil
+	return &rqrp.AddMessageResult{}, nil
 }
 func (rc *RpcController) ListAllMessages(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
 	var p *rqrp.ListAllMessagesParams

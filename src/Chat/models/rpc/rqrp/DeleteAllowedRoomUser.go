@@ -11,6 +11,4 @@ type DeleteAllowedRoomUserParams struct {
 	UserId common.ObjectId `json:"userId,omitempty"`
 }
 
-type DeleteAllowedRoomUserResult struct {
-	rpc.Success
-}
+type DeleteAllowedRoomUserResult struct{}

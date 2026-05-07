@@ -11,6 +11,4 @@ type AddRoomModeratorParams struct {
 	UserId common.ObjectId `json:"userId,omitempty"`
 }
 
-type AddRoomModeratorResult struct {
-	rpc.Success
-}
+type AddRoomModeratorResult struct{}
