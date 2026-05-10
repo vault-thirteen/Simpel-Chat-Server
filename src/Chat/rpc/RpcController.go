@@ -2136,14 +2136,15 @@ func (rc *RpcController) listAllMessages(p *rqrp.ListAllMessagesParams) (result 
 	// Perform an action.
 	{
 		var rawMsgs []*msg.Message
-		rawMsgs, rpcErr = rc.adc.ListAllMessagesInRoom(p.RoomId, session.UserId)
+		var nowTS int64
+		rawMsgs, nowTS, rpcErr = rc.adc.ListAllMessagesInRoom(p.RoomId, session.UserId)
 		if rpcErr != nil {
 			return nil, rpcErr
 		}
 
 		sstts := rc.adc.GetServerStartTimeTS()
 
-		result = &rqrp.ListAllMessagesResult{Messages: lom.NewListOfMessages(p.RoomId, rawMsgs, sstts, nil)}
+		result = &rqrp.ListAllMessagesResult{Messages: lom.NewListOfMessages(p.RoomId, rawMsgs, nowTS, sstts, nil)}
 	}
 
 	return result, nil
@@ -2185,14 +2186,15 @@ func (rc *RpcController) listMessagesSince(p *rqrp.ListMessagesSinceParams) (res
 	// Perform an action.
 	{
 		var rawMsgs []*msg.Message
-		rawMsgs, rpcErr = rc.adc.ListMessagesInRoomSince(p.RoomId, session.UserId, p.TimeMarkTS)
+		var nowTS int64
+		rawMsgs, nowTS, rpcErr = rc.adc.ListMessagesInRoomSince(p.RoomId, session.UserId, p.TimeMarkTS)
 		if rpcErr != nil {
 			return nil, rpcErr
 		}
 
 		sstts := rc.adc.GetServerStartTimeTS()
 
-		result = &rqrp.ListMessagesSinceResult{Messages: lom.NewListOfMessages(p.RoomId, rawMsgs, sstts, &p.TimeMarkTS)}
+		result = &rqrp.ListMessagesSinceResult{Messages: lom.NewListOfMessages(p.RoomId, rawMsgs, nowTS, sstts, &p.TimeMarkTS)}
 	}
 
 	return result, nil

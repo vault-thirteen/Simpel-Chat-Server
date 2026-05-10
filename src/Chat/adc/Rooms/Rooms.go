@@ -4,6 +4,7 @@ import (
 	"errors"
 	"sort"
 	"sync"
+	"time"
 
 	jrm1 "github.com/vault-thirteen/JSON-RPC-M1"
 
@@ -485,41 +486,51 @@ func (r *Rooms) AddMessageIntoRoom(roomId common.ObjectId, userId common.ObjectI
 
 	return nil
 }
-func (r *Rooms) ListAllMessagesInRoom(roomId common.ObjectId, userId common.ObjectId) (msgs []*msg.Message, rpcErr *jrm1.RpcError) {
+func (r *Rooms) ListAllMessagesInRoom(roomId common.ObjectId, userId common.ObjectId) (msgs []*msg.Message, nowTS int64, rpcErr *jrm1.RpcError) {
 	r.guard.RLock()
 	defer r.guard.RUnlock()
 
 	room, ok := r.roomById[roomId]
 	if !ok {
 		err := errors.New(helper.Err_RoomIsNotFound)
-		return nil, re.NewRpcError_RoomError(err)
+		return nil, -1, re.NewRpcError_RoomError(err)
 	}
+
+	// We return a timestamp of the memory read operation for cases of slow
+	// network communication in order for the client to be able to adjust its
+	// behaviour to these slow network conditions.
+	nowTS = time.Now().Unix()
 
 	var err error
 	msgs, err = room.ListAllMessages(userId)
 	if err != nil {
-		return nil, re.NewRpcError_RoomError(err)
+		return nil, -1, re.NewRpcError_RoomError(err)
 	}
 
-	return msgs, nil
+	return msgs, nowTS, nil
 }
-func (r *Rooms) ListMessagesInRoomSince(roomId common.ObjectId, userId common.ObjectId, timeMarkTS int64) (msgs []*msg.Message, rpcErr *jrm1.RpcError) {
+func (r *Rooms) ListMessagesInRoomSince(roomId common.ObjectId, userId common.ObjectId, timeMarkTS int64) (msgs []*msg.Message, nowTS int64, rpcErr *jrm1.RpcError) {
 	r.guard.RLock()
 	defer r.guard.RUnlock()
 
 	room, ok := r.roomById[roomId]
 	if !ok {
 		err := errors.New(helper.Err_RoomIsNotFound)
-		return nil, re.NewRpcError_RoomError(err)
+		return nil, -1, re.NewRpcError_RoomError(err)
 	}
+
+	// We return a timestamp of the memory read operation for cases of slow
+	// network communication in order for the client to be able to adjust its
+	// behaviour to these slow network conditions.
+	nowTS = time.Now().Unix()
 
 	var err error
 	msgs, err = room.ListMessagesSince(userId, timeMarkTS)
 	if err != nil {
-		return nil, re.NewRpcError_RoomError(err)
+		return nil, -1, re.NewRpcError_RoomError(err)
 	}
 
-	return msgs, nil
+	return msgs, nowTS, nil
 }
 
 // Auxiliary functions.

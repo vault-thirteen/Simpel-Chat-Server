@@ -6,6 +6,7 @@ import (
 )
 
 type ListOfMessages struct {
+	OpTimeTS          int64             `json:"opTimeTS"`
 	RoomId            common.ObjectId   `json:"roomId"`
 	ServerStartTimeTS int64             `json:"SSTTS"`
 	SinceTS           *int64            `json:"sinceTS,omitempty"`
@@ -15,12 +16,13 @@ type ListOfMessages struct {
 	Contents          []string          `json:"contents"`
 }
 
-func NewListOfMessages(roomId common.ObjectId, msgs []*msg.Message, serverStartTimeTS int64, sinceTS *int64) (l *ListOfMessages) {
+func NewListOfMessages(roomId common.ObjectId, msgs []*msg.Message, nowTS int64, serverStartTimeTS int64, sinceTS *int64) (l *ListOfMessages) {
 	if msgs == nil {
 		return nil
 	}
 
 	l = &ListOfMessages{
+		OpTimeTS:          nowTS,
 		RoomId:            roomId,
 		ServerStartTimeTS: serverStartTimeTS,
 		SinceTS:           sinceTS,

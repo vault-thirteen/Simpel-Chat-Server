@@ -166,12 +166,12 @@ func (adc *ActiveDataController) AddMessageIntoRoom(roomId common.ObjectId, user
 	defer adc.guard.Unlock()
 	return adc.rooms.AddMessageIntoRoom(roomId, userId, msgText)
 }
-func (adc *ActiveDataController) ListAllMessagesInRoom(roomId common.ObjectId, userId common.ObjectId) (msgs []*msg.Message, rpcErr *jrm1.RpcError) {
+func (adc *ActiveDataController) ListAllMessagesInRoom(roomId common.ObjectId, userId common.ObjectId) (msgs []*msg.Message, nowTS int64, rpcErr *jrm1.RpcError) {
 	adc.guard.RLock()
 	defer adc.guard.RUnlock()
 	return adc.rooms.ListAllMessagesInRoom(roomId, userId)
 }
-func (adc *ActiveDataController) ListMessagesInRoomSince(roomId common.ObjectId, userId common.ObjectId, timeMarkTS int64) (msgs []*msg.Message, rpcErr *jrm1.RpcError) {
+func (adc *ActiveDataController) ListMessagesInRoomSince(roomId common.ObjectId, userId common.ObjectId, timeMarkTS int64) (msgs []*msg.Message, nowTS int64, rpcErr *jrm1.RpcError) {
 	adc.guard.RLock()
 	defer adc.guard.RUnlock()
 	return adc.rooms.ListMessagesInRoomSince(roomId, userId, timeMarkTS)

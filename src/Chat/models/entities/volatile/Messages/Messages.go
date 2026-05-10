@@ -57,17 +57,51 @@ func (m *Messages) AddMessage(message *msg.Message) (err error) {
 }
 
 func (m *Messages) GetMessagesSince(timeBorderTS int64) (out []*msg.Message) {
-	out = make([]*msg.Message, 0, m.parameters.MessageCountLimit())
+	var timeBorderDTS = timeBorderTS - m.serverStartTimeTS
 
-	var mtoc int64
-	for _, message := range m.messages {
-		mtoc = m.serverStartTimeTS + message.TimeOfCreationDTS()
+	if len(m.messages) < 1 {
+		return out
+	}
 
-		if mtoc < timeBorderTS {
-			continue
+	// Read messages from the left or right corner of array depending on the
+	// requested time border.
+
+	firstMsgTimeDTS := m.messages[0].TimeOfCreationDTS()
+	lastMsgTimeDTS := m.messages[len(m.messages)-1].TimeOfCreationDTS()
+	avgMsgTimeDTS := (lastMsgTimeDTS - firstMsgTimeDTS) / 2
+
+	if timeBorderDTS <= avgMsgTimeDTS {
+		// Read messages from the left end.
+		out = make([]*msg.Message, 0, m.parameters.MessageCountLimit())
+
+		for _, message := range m.messages {
+			if message.TimeOfCreationDTS() < timeBorderDTS {
+				continue
+			}
+
+			out = append(out, message)
+		}
+	} else {
+		// Read messages from the right end.
+		buf := make([]*msg.Message, 0, m.parameters.MessageCountLimit())
+
+		i := len(m.messages) - 1
+		message := m.messages[i]
+		for message.TimeOfCreationDTS() >= timeBorderDTS {
+			buf = append(buf, message)
+
+			// Next left index.
+			i--
+			if i < 0 {
+				break
+			}
+			message = m.messages[i]
 		}
 
-		out = append(out, message)
+		out = make([]*msg.Message, 0, len(buf))
+		for i = len(buf) - 1; i >= 0; i-- {
+			out = append(out, buf[i])
+		}
 	}
 
 	return out
