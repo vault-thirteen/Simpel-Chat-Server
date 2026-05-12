@@ -6,7 +6,7 @@ import (
 )
 
 type ListUsersParams struct {
-	Auth       *rpc.Auth `json:"auth,omitempty"`
+	Auth       *rpc.Auth `json:"auth"`
 	PageSize   int       `json:"pageSize"`
 	PageNumber int       `json:"pageNumber"`
 }

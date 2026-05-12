@@ -7,10 +7,10 @@ import (
 )
 
 type GetUserParams struct {
-	Auth   *rpc.Auth       `json:"auth,omitempty"`
-	UserId common.ObjectId `json:"userId,omitempty"`
+	Auth   *rpc.Auth       `json:"auth"`
+	UserId common.ObjectId `json:"userId"`
 }
 
 type GetUserResult struct {
-	User *usr.User2 `json:"user,omitempty"`
+	User *usr.User2 `json:"user"`
 }

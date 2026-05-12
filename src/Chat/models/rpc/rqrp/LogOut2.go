@@ -5,7 +5,7 @@ import (
 )
 
 type LogOut2Params struct {
-	Auth      *rpc.Auth `json:"auth,omitempty"`
+	Auth      *rpc.Auth `json:"auth"`
 	RequestId string    `json:"requestId"`
 }
 

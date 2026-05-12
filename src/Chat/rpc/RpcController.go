@@ -118,6 +118,8 @@ func (rc *RpcController) GetRpcFunctions() []jrm1.RpcFunction {
 		rc.EnterRoom,
 		rc.LeaveRoom,
 		rc.GetMyRoomId,
+		rc.GetRoom,
+		rc.GetRoomUsers,
 
 		// Message functions.
 		rc.AddMessage,
@@ -1566,7 +1568,10 @@ func (rc *RpcController) listRoomModerators(p *rqrp.ListRoomModeratorsParams) (r
 			return nil, rpcErr
 		}
 
-		result = &rqrp.ListRoomModeratorsResult{UserIds: userIds}
+		result = &rqrp.ListRoomModeratorsResult{
+			RoomId:  p.RoomId,
+			UserIds: userIds,
+		}
 	}
 
 	return result, nil
@@ -1676,16 +1681,10 @@ func (rc *RpcController) addAllowedRoomUser(p *rqrp.AddAllowedRoomUserParams) (r
 		}
 	}
 
-	var user *usr.User
-	user, rpcErr = rc.getUserBySession(session)
-	if rpcErr != nil {
-		return nil, rpcErr
-	}
-
 	// Check permissions.
 	{
 		var isModerator bool
-		isModerator, rpcErr = rc.adc.IsUserModerator(p.RoomId, user.Id)
+		isModerator, rpcErr = rc.adc.IsUserModerator(p.RoomId, session.UserId)
 		if rpcErr != nil {
 			return nil, rpcErr
 		}
@@ -1697,7 +1696,7 @@ func (rc *RpcController) addAllowedRoomUser(p *rqrp.AddAllowedRoomUserParams) (r
 
 	// Perform an action.
 	{
-		rpcErr = rc.adc.AddAllowedRoomUser(p.RoomId, p.UserId)
+		rpcErr = rc.adc.AddAllowedRoomUser(session.UserId, p.RoomId, p.UserId)
 		if rpcErr != nil {
 			return nil, rpcErr
 		}
@@ -1706,7 +1705,7 @@ func (rc *RpcController) addAllowedRoomUser(p *rqrp.AddAllowedRoomUserParams) (r
 	// Event report.
 	{
 		event := &ev.Event{
-			ActorId:      user.Id,
+			ActorId:      session.UserId,
 			Type:         enum.EventType_RoomAllowedUserAddition,
 			TargetUserId: &p.UserId,
 		}
@@ -1753,16 +1752,10 @@ func (rc *RpcController) deleteAllowedRoomUser(p *rqrp.DeleteAllowedRoomUserPara
 		}
 	}
 
-	var user *usr.User
-	user, rpcErr = rc.getUserBySession(session)
-	if rpcErr != nil {
-		return nil, rpcErr
-	}
-
 	// Check permissions.
 	{
 		var isModerator bool
-		isModerator, rpcErr = rc.adc.IsUserModerator(p.RoomId, user.Id)
+		isModerator, rpcErr = rc.adc.IsUserModerator(p.RoomId, session.UserId)
 		if rpcErr != nil {
 			return nil, rpcErr
 		}
@@ -1774,7 +1767,7 @@ func (rc *RpcController) deleteAllowedRoomUser(p *rqrp.DeleteAllowedRoomUserPara
 
 	// Perform an action.
 	{
-		rpcErr = rc.adc.DeleteAllowedRoomUser(p.RoomId, p.UserId)
+		rpcErr = rc.adc.DeleteAllowedRoomUser(session.UserId, p.RoomId, p.UserId)
 		if rpcErr != nil {
 			return nil, rpcErr
 		}
@@ -1783,7 +1776,7 @@ func (rc *RpcController) deleteAllowedRoomUser(p *rqrp.DeleteAllowedRoomUserPara
 	// Event report.
 	{
 		event := &ev.Event{
-			ActorId:      user.Id,
+			ActorId:      session.UserId,
 			Type:         enum.EventType_RoomAllowedUserDeletion,
 			TargetUserId: &p.UserId,
 		}
@@ -1827,16 +1820,10 @@ func (rc *RpcController) listAllowedRoomUsers(p *rqrp.ListAllowedRoomUsersParams
 		}
 	}
 
-	var user *usr.User
-	user, rpcErr = rc.getUserBySession(session)
-	if rpcErr != nil {
-		return nil, rpcErr
-	}
-
 	// Check permissions.
 	{
 		var isModerator bool
-		isModerator, rpcErr = rc.adc.IsUserModerator(p.RoomId, user.Id)
+		isModerator, rpcErr = rc.adc.IsUserModerator(p.RoomId, session.UserId)
 		if rpcErr != nil {
 			return nil, rpcErr
 		}
@@ -1849,12 +1836,15 @@ func (rc *RpcController) listAllowedRoomUsers(p *rqrp.ListAllowedRoomUsersParams
 	// Perform an action.
 	{
 		var userIds []common.ObjectId
-		userIds, rpcErr = rc.adc.ListAllowedRoomUsers(p.RoomId)
+		userIds, rpcErr = rc.adc.ListAllowedRoomUsers(session.UserId, p.RoomId)
 		if rpcErr != nil {
 			return nil, rpcErr
 		}
 
-		result = &rqrp.ListAllowedRoomUsersResult{UserIds: userIds}
+		result = &rqrp.ListAllowedRoomUsersResult{
+			RoomId:  p.RoomId,
+			UserIds: userIds,
+		}
 	}
 
 	return result, nil
@@ -1890,16 +1880,10 @@ func (rc *RpcController) resetAllowedRoomUsers(p *rqrp.ResetAllowedRoomUsersPara
 		}
 	}
 
-	var user *usr.User
-	user, rpcErr = rc.getUserBySession(session)
-	if rpcErr != nil {
-		return nil, rpcErr
-	}
-
 	// Check permissions.
 	{
 		var isModerator bool
-		isModerator, rpcErr = rc.adc.IsUserModerator(p.RoomId, user.Id)
+		isModerator, rpcErr = rc.adc.IsUserModerator(p.RoomId, session.UserId)
 		if rpcErr != nil {
 			return nil, rpcErr
 		}
@@ -1911,7 +1895,7 @@ func (rc *RpcController) resetAllowedRoomUsers(p *rqrp.ResetAllowedRoomUsersPara
 
 	// Perform an action.
 	{
-		rpcErr = rc.adc.ResetAllowedRoomUsers(p.RoomId)
+		rpcErr = rc.adc.ResetAllowedRoomUsers(session.UserId, p.RoomId)
 		if rpcErr != nil {
 			return nil, rpcErr
 		}
@@ -1920,7 +1904,7 @@ func (rc *RpcController) resetAllowedRoomUsers(p *rqrp.ResetAllowedRoomUsersPara
 	// Event report.
 	{
 		event := &ev.Event{
-			ActorId:      user.Id,
+			ActorId:      session.UserId,
 			Type:         enum.EventType_RoomAllowedUserReset,
 			TargetUserId: nil,
 		}
@@ -2050,7 +2034,101 @@ func (rc *RpcController) getMyRoomId(p *rqrp.GetMyRoomIdParams) (result *rqrp.Ge
 			return nil, rpcErr
 		}
 
-		result = &rqrp.GetMyRoomIdResult{RoomId: roomId}
+		result = &rqrp.GetMyRoomIdResult{
+			UserId: session.UserId,
+			RoomId: roomId,
+		}
+	}
+
+	return result, nil
+}
+func (rc *RpcController) GetRoom(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
+	var p *rqrp.GetRoomParams
+	rpcErr = jrm1.ParseParameters(params, &p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	var r *rqrp.GetRoomResult
+	r, rpcErr = rc.getRoom(p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	return r, nil
+}
+func (rc *RpcController) getRoom(p *rqrp.GetRoomParams) (result *rqrp.GetRoomResult, rpcErr *jrm1.RpcError) {
+	var session *ses.Session
+	session, rpcErr = rc.getUserSession(p.Auth)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	session.TouchLastActivityTime()
+
+	// Check input data.
+	{
+		if p.RoomId == 0 {
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_RoomId)
+		}
+	}
+
+	// Perform an action.
+	{
+		var room *rm.Room
+		room, rpcErr = rc.adc.GetRoom(session.UserId, p.RoomId)
+		if rpcErr != nil {
+			return nil, rpcErr
+		}
+
+		result = &rqrp.GetRoomResult{Room: room}
+	}
+
+	return result, nil
+}
+func (rc *RpcController) GetRoomUsers(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
+	var p *rqrp.GetRoomUsersParams
+	rpcErr = jrm1.ParseParameters(params, &p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	var r *rqrp.GetRoomUsersResult
+	r, rpcErr = rc.getRoomUsers(p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	return r, nil
+}
+func (rc *RpcController) getRoomUsers(p *rqrp.GetRoomUsersParams) (result *rqrp.GetRoomUsersResult, rpcErr *jrm1.RpcError) {
+	var session *ses.Session
+	session, rpcErr = rc.getUserSession(p.Auth)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	session.TouchLastActivityTime()
+
+	// Check input data.
+	{
+		if p.RoomId == 0 {
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_RoomId)
+		}
+	}
+
+	// Perform an action.
+	{
+		var activeUserIds []common.ObjectId
+		activeUserIds, rpcErr = rc.adc.GetRoomUsers(p.RoomId)
+		if rpcErr != nil {
+			return nil, rpcErr
+		}
+
+		result = &rqrp.GetRoomUsersResult{
+			RoomId:        p.RoomId,
+			ActiveUserIds: activeUserIds,
+		}
 	}
 
 	return result, nil

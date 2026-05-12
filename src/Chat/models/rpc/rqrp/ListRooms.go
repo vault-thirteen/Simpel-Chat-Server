@@ -6,7 +6,7 @@ import (
 )
 
 type ListRoomsParams struct {
-	Auth *rpc.Auth `json:"auth,omitempty"`
+	Auth *rpc.Auth `json:"auth"`
 }
 
 type ListRoomsResult struct {

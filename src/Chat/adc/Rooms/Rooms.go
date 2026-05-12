@@ -246,13 +246,18 @@ func (r *Rooms) ResetRoomModerators(roomId common.ObjectId) (rpcErr *jrm1.RpcErr
 
 // Allowed Room User functions.
 
-func (r *Rooms) AddAllowedRoomUser(roomId common.ObjectId, userId common.ObjectId) (rpcErr *jrm1.RpcError) {
+func (r *Rooms) AddAllowedRoomUser(callerId common.ObjectId, roomId common.ObjectId, userId common.ObjectId) (rpcErr *jrm1.RpcError) {
 	r.guard.Lock()
 	defer r.guard.Unlock()
 
 	room, ok := r.roomById[roomId]
 	if !ok {
 		err := errors.New(helper.Err_RoomIsNotFound)
+		return re.NewRpcError_RoomError(err)
+	}
+
+	if !room.IsUserModerator(callerId) {
+		err := errors.New(helper.Err_YouAreNotModerator)
 		return re.NewRpcError_RoomError(err)
 	}
 
@@ -278,13 +283,18 @@ func (r *Rooms) AddAllowedRoomUser(roomId common.ObjectId, userId common.ObjectI
 
 	return nil
 }
-func (r *Rooms) DeleteAllowedRoomUser(roomId common.ObjectId, userId common.ObjectId) (rpcErr *jrm1.RpcError) {
+func (r *Rooms) DeleteAllowedRoomUser(callerId common.ObjectId, roomId common.ObjectId, userId common.ObjectId) (rpcErr *jrm1.RpcError) {
 	r.guard.Lock()
 	defer r.guard.Unlock()
 
 	room, ok := r.roomById[roomId]
 	if !ok {
 		err := errors.New(helper.Err_RoomIsNotFound)
+		return re.NewRpcError_RoomError(err)
+	}
+
+	if !room.IsUserModerator(callerId) {
+		err := errors.New(helper.Err_YouAreNotModerator)
 		return re.NewRpcError_RoomError(err)
 	}
 
@@ -310,7 +320,7 @@ func (r *Rooms) DeleteAllowedRoomUser(roomId common.ObjectId, userId common.Obje
 
 	return nil
 }
-func (r *Rooms) ListAllowedRoomUsers(roomId common.ObjectId) (userIds []common.ObjectId, rpcErr *jrm1.RpcError) {
+func (r *Rooms) ListAllowedRoomUsers(callerId common.ObjectId, roomId common.ObjectId) (userIds []common.ObjectId, rpcErr *jrm1.RpcError) {
 	r.guard.RLock()
 	defer r.guard.RUnlock()
 
@@ -320,17 +330,27 @@ func (r *Rooms) ListAllowedRoomUsers(roomId common.ObjectId) (userIds []common.O
 		return nil, re.NewRpcError_RoomError(err)
 	}
 
+	if !room.IsUserModerator(callerId) {
+		err := errors.New(helper.Err_YouAreNotModerator)
+		return nil, re.NewRpcError_RoomError(err)
+	}
+
 	userIds = room.AllowedUserIds.List()
 
 	return userIds, nil
 }
-func (r *Rooms) ResetAllowedRoomUsers(roomId common.ObjectId) (rpcErr *jrm1.RpcError) {
+func (r *Rooms) ResetAllowedRoomUsers(callerId common.ObjectId, roomId common.ObjectId) (rpcErr *jrm1.RpcError) {
 	r.guard.Lock()
 	defer r.guard.Unlock()
 
 	room, ok := r.roomById[roomId]
 	if !ok {
 		err := errors.New(helper.Err_RoomIsNotFound)
+		return re.NewRpcError_RoomError(err)
+	}
+
+	if !room.IsUserModerator(callerId) {
+		err := errors.New(helper.Err_YouAreNotModerator)
 		return re.NewRpcError_RoomError(err)
 	}
 
@@ -460,6 +480,32 @@ func (r *Rooms) GetUserRoomId(userId common.ObjectId) (roomId *common.ObjectId, 
 	}
 
 	return &room.Id, nil
+}
+func (r *Rooms) GetRoom(callerId common.ObjectId, roomId common.ObjectId) (room *rm.Room, rpcErr *jrm1.RpcError) {
+	r.guard.RLock()
+	defer r.guard.RUnlock()
+
+	room, ok := r.roomById[roomId]
+	if !ok {
+		return nil, nil
+	}
+
+	if !room.IsUserModerator(callerId) {
+		room.AllowedUserIds = nil
+	}
+
+	return room, nil
+}
+func (r *Rooms) GetRoomUsers(roomId common.ObjectId) (activeUserIds []common.ObjectId, rpcErr *jrm1.RpcError) {
+	r.guard.RLock()
+	defer r.guard.RUnlock()
+
+	room, ok := r.roomById[roomId]
+	if !ok {
+		return nil, nil
+	}
+
+	return room.GetActiveUserIds(), nil
 }
 
 // Message functions.

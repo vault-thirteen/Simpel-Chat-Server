@@ -5,7 +5,7 @@ import (
 )
 
 type IsMeAdministratorParams struct {
-	Auth *rpc.Auth `json:"auth,omitempty"`
+	Auth *rpc.Auth `json:"auth"`
 }
 
 type IsMeAdministratorResult struct {

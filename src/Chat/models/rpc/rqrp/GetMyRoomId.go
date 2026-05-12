@@ -6,9 +6,10 @@ import (
 )
 
 type GetMyRoomIdParams struct {
-	Auth *rpc.Auth `json:"auth,omitempty"`
+	Auth *rpc.Auth `json:"auth"`
 }
 
 type GetMyRoomIdResult struct {
+	UserId common.ObjectId  `json:"userId"`
 	RoomId *common.ObjectId `json:"roomId"`
 }

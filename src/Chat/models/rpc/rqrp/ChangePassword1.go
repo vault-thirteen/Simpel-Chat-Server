@@ -5,7 +5,7 @@ import (
 )
 
 type ChangePassword1Params struct {
-	Auth *rpc.Auth `json:"auth,omitempty"`
+	Auth *rpc.Auth `json:"auth"`
 }
 
 type ChangePassword1Result struct {

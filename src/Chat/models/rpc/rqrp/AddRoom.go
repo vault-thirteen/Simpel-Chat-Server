@@ -7,11 +7,11 @@ import (
 )
 
 type AddRoomParams struct {
-	Auth     *rpc.Auth     `json:"auth,omitempty"`
-	RoomType enum.RoomType `json:"roomType,omitempty"`
-	RoomName string        `json:"roomName,omitempty"`
+	Auth     *rpc.Auth     `json:"auth"`
+	RoomType enum.RoomType `json:"roomType"`
+	RoomName string        `json:"roomName"`
 }
 
 type AddRoomResult struct {
-	RoomId common.ObjectId `json:"roomId,omitempty"`
+	RoomId common.ObjectId `json:"roomId"`
 }

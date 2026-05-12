@@ -6,7 +6,7 @@ import (
 )
 
 type BanUserParams struct {
-	Auth   *rpc.Auth       `json:"auth,omitempty"`
+	Auth   *rpc.Auth       `json:"auth"`
 	UserId common.ObjectId `json:"userId" gorm:"uniqueIndex"`
 }
 

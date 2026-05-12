@@ -33,6 +33,7 @@ const (
 	Err_UnknownRoomType                  = "unknown room type"
 	Err_MessageIsTooLong                 = "message is too long"
 	Err_NameIsTooLong                    = "name is too long"
+	Err_YouAreNotModerator               = "you are not a moderator"
 )
 
 func NewError_Simple2SA(format string, value any) error {

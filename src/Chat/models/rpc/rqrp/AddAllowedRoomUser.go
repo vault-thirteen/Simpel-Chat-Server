@@ -6,9 +6,9 @@ import (
 )
 
 type AddAllowedRoomUserParams struct {
-	Auth   *rpc.Auth       `json:"auth,omitempty"`
-	RoomId common.ObjectId `json:"roomId,omitempty"`
-	UserId common.ObjectId `json:"userId,omitempty"`
+	Auth   *rpc.Auth       `json:"auth"`
+	RoomId common.ObjectId `json:"roomId"`
+	UserId common.ObjectId `json:"userId"`
 }
 
 type AddAllowedRoomUserResult struct{}

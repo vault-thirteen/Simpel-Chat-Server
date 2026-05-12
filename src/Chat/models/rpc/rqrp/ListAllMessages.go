@@ -7,8 +7,8 @@ import (
 )
 
 type ListAllMessagesParams struct {
-	Auth   *rpc.Auth       `json:"auth,omitempty"`
-	RoomId common.ObjectId `json:"roomId,omitempty"`
+	Auth   *rpc.Auth       `json:"auth"`
+	RoomId common.ObjectId `json:"roomId"`
 }
 
 type ListAllMessagesResult struct {

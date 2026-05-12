@@ -120,25 +120,25 @@ func (adc *ActiveDataController) ResetRoomModerators(roomId common.ObjectId) (rp
 
 // Allowed Room User functions.
 
-func (adc *ActiveDataController) AddAllowedRoomUser(roomId common.ObjectId, userId common.ObjectId) (rpcErr *jrm1.RpcError) {
+func (adc *ActiveDataController) AddAllowedRoomUser(callerId common.ObjectId, roomId common.ObjectId, userId common.ObjectId) (rpcErr *jrm1.RpcError) {
 	adc.guard.Lock()
 	defer adc.guard.Unlock()
-	return adc.rooms.AddAllowedRoomUser(roomId, userId)
+	return adc.rooms.AddAllowedRoomUser(callerId, roomId, userId)
 }
-func (adc *ActiveDataController) DeleteAllowedRoomUser(roomId common.ObjectId, userId common.ObjectId) (rpcErr *jrm1.RpcError) {
+func (adc *ActiveDataController) DeleteAllowedRoomUser(callerId common.ObjectId, roomId common.ObjectId, userId common.ObjectId) (rpcErr *jrm1.RpcError) {
 	adc.guard.Lock()
 	defer adc.guard.Unlock()
-	return adc.rooms.DeleteAllowedRoomUser(roomId, userId)
+	return adc.rooms.DeleteAllowedRoomUser(callerId, roomId, userId)
 }
-func (adc *ActiveDataController) ListAllowedRoomUsers(roomId common.ObjectId) (userIds []common.ObjectId, rpcErr *jrm1.RpcError) {
+func (adc *ActiveDataController) ListAllowedRoomUsers(callerId common.ObjectId, roomId common.ObjectId) (userIds []common.ObjectId, rpcErr *jrm1.RpcError) {
 	adc.guard.RLock()
 	defer adc.guard.RUnlock()
-	return adc.rooms.ListAllowedRoomUsers(roomId)
+	return adc.rooms.ListAllowedRoomUsers(callerId, roomId)
 }
-func (adc *ActiveDataController) ResetAllowedRoomUsers(roomId common.ObjectId) (rpcErr *jrm1.RpcError) {
+func (adc *ActiveDataController) ResetAllowedRoomUsers(callerId common.ObjectId, roomId common.ObjectId) (rpcErr *jrm1.RpcError) {
 	adc.guard.Lock()
 	defer adc.guard.Unlock()
-	return adc.rooms.ResetAllowedRoomUsers(roomId)
+	return adc.rooms.ResetAllowedRoomUsers(callerId, roomId)
 }
 
 // User Room functions.
@@ -157,6 +157,16 @@ func (adc *ActiveDataController) GetUserRoomId(userId common.ObjectId) (roomId *
 	adc.guard.RLock()
 	defer adc.guard.RUnlock()
 	return adc.rooms.GetUserRoomId(userId)
+}
+func (adc *ActiveDataController) GetRoom(callerId common.ObjectId, roomId common.ObjectId) (room *rm.Room, rpcErr *jrm1.RpcError) {
+	adc.guard.RLock()
+	defer adc.guard.RUnlock()
+	return adc.rooms.GetRoom(callerId, roomId)
+}
+func (adc *ActiveDataController) GetRoomUsers(roomId common.ObjectId) (activeUserIds []common.ObjectId, rpcErr *jrm1.RpcError) {
+	adc.guard.RLock()
+	defer adc.guard.RUnlock()
+	return adc.rooms.GetRoomUsers(roomId)
 }
 
 // Message functions.

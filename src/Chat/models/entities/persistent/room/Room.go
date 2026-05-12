@@ -19,11 +19,13 @@ type Room struct {
 	Name string          `json:"name" gorm:"unique;size:255"`
 
 	// IDs of users, who may change the list of allowed users of the chat room.
+	// This field is shown to everyone.
 	Moderators *common.IdList `json:"moderators" gorm:"column:moderators"`
 
 	// IDs of users, who may read messages from and write messages into this
 	// chat room. NULL for public rooms, as anyone can use them.
-	AllowedUserIds *common.IdList `json:"AllowedUserIds" gorm:"column:allowedUserIds"`
+	// This field is shown only to moderators of the room.
+	AllowedUserIds *common.IdList `json:"allowedUserIds,omitempty" gorm:"column:allowedUserIds"`
 
 	// Common room settings.
 	parameters        *rp.RoomParameters `gorm:"-"`
@@ -149,6 +151,18 @@ func (r *Room) GetFirstActiveUser() (user *usr.User) {
 	}
 
 	return r.activeUsers[0]
+}
+func (r *Room) GetActiveUserIds() (activeUserIds []common.ObjectId) {
+	if len(r.activeUsers) == 0 {
+		return nil
+	}
+
+	activeUserIds = make([]common.ObjectId, 0, len(r.activeUsers))
+	for _, user := range r.activeUsers {
+		activeUserIds = append(activeUserIds, user.Id)
+	}
+
+	return activeUserIds
 }
 
 func (r *Room) AddMessage(userId common.ObjectId, msgText string) (err error) {

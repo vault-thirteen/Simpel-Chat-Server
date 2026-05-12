@@ -6,10 +6,11 @@ import (
 )
 
 type ListRoomModeratorsParams struct {
-	Auth   *rpc.Auth       `json:"auth,omitempty"`
-	RoomId common.ObjectId `json:"roomId,omitempty"`
+	Auth   *rpc.Auth       `json:"auth"`
+	RoomId common.ObjectId `json:"roomId"`
 }
 
 type ListRoomModeratorsResult struct {
+	RoomId  common.ObjectId   `json:"roomId"`
 	UserIds []common.ObjectId `json:"userIds"`
 }

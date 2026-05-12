@@ -7,9 +7,9 @@ import (
 )
 
 type ListMessagesSinceParams struct {
-	Auth       *rpc.Auth       `json:"auth,omitempty"`
-	RoomId     common.ObjectId `json:"roomId,omitempty"`
-	TimeMarkTS int64           `json:"timeMarkTS,omitempty"`
+	Auth       *rpc.Auth       `json:"auth"`
+	RoomId     common.ObjectId `json:"roomId"`
+	TimeMarkTS int64           `json:"timeMarkTS"`
 }
 
 type ListMessagesSinceResult struct {

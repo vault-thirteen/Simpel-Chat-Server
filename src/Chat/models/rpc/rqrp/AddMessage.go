@@ -6,9 +6,9 @@ import (
 )
 
 type AddMessageParams struct {
-	Auth        *rpc.Auth       `json:"auth,omitempty"`
-	RoomId      common.ObjectId `json:"roomId,omitempty"`
-	MessageText string          `json:"messageText,omitempty"`
+	Auth        *rpc.Auth       `json:"auth"`
+	RoomId      common.ObjectId `json:"roomId"`
+	MessageText string          `json:"messageText"`
 }
 
 type AddMessageResult struct{}
