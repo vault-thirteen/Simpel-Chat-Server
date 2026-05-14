@@ -236,7 +236,7 @@ func (r *Rooms) ResetRoomModerators(roomId common.ObjectId) (rpcErr *jrm1.RpcErr
 
 	room.Moderators = nil
 
-	err := r.db.ResetRoomModerators(room)
+	err := r.db.SaveRoom(room)
 	if err != nil {
 		return r.der.DatabaseError(err)
 	}
@@ -335,6 +335,11 @@ func (r *Rooms) ListAllowedRoomUsers(callerId common.ObjectId, roomId common.Obj
 		return nil, re.NewRpcError_RoomError(err)
 	}
 
+	if room.Type == enum.RoomType_Public {
+		err := errors.New(helper.Err_PublicRoomCanNotHaveAllowedUsers)
+		return nil, re.NewRpcError_RoomError(err)
+	}
+
 	userIds = room.AllowedUserIds.List()
 
 	return userIds, nil
@@ -354,9 +359,14 @@ func (r *Rooms) ResetAllowedRoomUsers(callerId common.ObjectId, roomId common.Ob
 		return re.NewRpcError_RoomError(err)
 	}
 
+	if room.Type == enum.RoomType_Public {
+		err := errors.New(helper.Err_PublicRoomCanNotHaveAllowedUsers)
+		return re.NewRpcError_RoomError(err)
+	}
+
 	room.AllowedUserIds = nil
 
-	err := r.db.ResetAllowedRoomUsers(room)
+	err := r.db.SaveRoom(room)
 	if err != nil {
 		return r.der.DatabaseError(err)
 	}
@@ -485,16 +495,22 @@ func (r *Rooms) GetRoom(callerId common.ObjectId, roomId common.ObjectId) (room 
 	r.guard.RLock()
 	defer r.guard.RUnlock()
 
-	room, ok := r.roomById[roomId]
+	var ok bool
+	room, ok = r.roomById[roomId]
 	if !ok {
 		return nil, nil
 	}
 
-	if !room.IsUserModerator(callerId) {
-		room.AllowedUserIds = nil
+	// We need to mask the 'AllowedUserIds' field for the reply.
+	// In order not to spoil the original data, we copy the object.
+	var roomCopy = new(rm.Room)
+	*roomCopy = *room
+
+	if !roomCopy.IsUserModerator(callerId) {
+		roomCopy.AllowedUserIds = nil
 	}
 
-	return room, nil
+	return roomCopy, nil
 }
 func (r *Rooms) GetRoomUsers(roomId common.ObjectId) (activeUserIds []common.ObjectId, rpcErr *jrm1.RpcError) {
 	r.guard.RLock()

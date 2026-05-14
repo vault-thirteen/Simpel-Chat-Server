@@ -533,41 +533,6 @@ func (db *Database) DeleteRoom(room *rm.Room) (err error) {
 
 	return nil
 }
-func (db *Database) ResetRoomModerators(room *rm.Room) (err error) {
-	if room == nil {
-		return errors.New(helper.Err_NullPointer)
-	}
-
-	if room.Id == 0 {
-		return errors.New(helper.Err_IdIsNotSet)
-	}
-
-	tx := db.gormDb.Model(room).Update("moderators", nil)
-	if tx.Error != nil {
-		return tx.Error
-	}
-
-	if tx.RowsAffected == 0 {
-		return errors.New(helper.Err_NoRowsAreAffected)
-	}
-
-	return nil
-}
-func (db *Database) GetRoomById(room *rm.Room) (err error) {
-	if room == nil {
-		return errors.New(helper.Err_NullPointer)
-	}
-
-	if room.Id == 0 {
-		return errors.New(helper.Err_IdIsNotSet)
-	}
-
-	tx := db.gormDb.First(room)
-	if tx.Error != nil {
-		return tx.Error
-	}
-	return nil
-}
 func (db *Database) SaveRoom(room *rm.Room) (err error) {
 	if room == nil {
 		return errors.New(helper.Err_NullPointer)
@@ -578,26 +543,6 @@ func (db *Database) SaveRoom(room *rm.Room) (err error) {
 	}
 
 	tx := db.gormDb.Save(room)
-	if tx.Error != nil {
-		return tx.Error
-	}
-
-	if tx.RowsAffected == 0 {
-		return errors.New(helper.Err_NoRowsAreAffected)
-	}
-
-	return nil
-}
-func (db *Database) ResetAllowedRoomUsers(room *rm.Room) (err error) {
-	if room == nil {
-		return errors.New(helper.Err_NullPointer)
-	}
-
-	if room.Id == 0 {
-		return errors.New(helper.Err_IdIsNotSet)
-	}
-
-	tx := db.gormDb.Model(room).Update("allowedUserIds", nil)
 	if tx.Error != nil {
 		return tx.Error
 	}

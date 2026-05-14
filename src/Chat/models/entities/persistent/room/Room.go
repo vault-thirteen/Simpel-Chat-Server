@@ -127,9 +127,25 @@ func (r *Room) PutUserIntoRoom(user *usr.User) (err error) {
 		return errors.New(helper.Err_UserIsAlreadyInTheRoom)
 	}
 
-	r.addUser(user)
+	switch r.Type {
+	case enum.RoomType_Public:
+		{
+			r.addUser(user)
+			return nil
+		}
 
-	return nil
+	case enum.RoomType_Private:
+		{
+			if !r.IsUserAllowed(user.Id) {
+				return errors.New(helper.Err_UserIsNotAllowedToUseThisRoom)
+			}
+			r.addUser(user)
+			return nil
+		}
+
+	default:
+		return errors.New(helper.Err_UnknownRoomType)
+	}
 }
 func (r *Room) RemoveUserFromRoom(user *usr.User) (err error) {
 	if user == nil {
@@ -166,75 +182,32 @@ func (r *Room) GetActiveUserIds() (activeUserIds []common.ObjectId) {
 }
 
 func (r *Room) AddMessage(userId common.ObjectId, msgText string) (err error) {
-	if !r.IsUserInsideRoom(userId) {
+	if !r.hasUserWithId(userId) {
 		return errors.New(helper.Err_UserIsNotInTheRoom)
 	}
 
-	if r.Type == enum.RoomType_Public {
-		m := msg.NewMessage(userId, msgText, r.serverStartTimeTS)
+	m := msg.NewMessage(userId, msgText, r.serverStartTimeTS)
 
-		err = r.messages.AddMessage(m)
-		if err != nil {
-			return err
-		}
-
-		return nil
+	err = r.messages.AddMessage(m)
+	if err != nil {
+		return err
 	}
 
-	if r.Type == enum.RoomType_Private {
-		if !r.IsUserAllowed(userId) {
-			return errors.New(helper.Err_UserIsNotAllowedToUseThisRoom)
-		}
-
-		m := msg.NewMessage(userId, msgText, r.serverStartTimeTS)
-
-		err = r.messages.AddMessage(m)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	}
-
-	return errors.New(helper.Err_UnknownRoomType)
+	return nil
 }
 func (r *Room) ListAllMessages(userId common.ObjectId) (msgs []*msg.Message, err error) {
-	if !r.IsUserInsideRoom(userId) {
+	if !r.hasUserWithId(userId) {
 		return nil, errors.New(helper.Err_UserIsNotInTheRoom)
 	}
 
-	if r.Type == enum.RoomType_Public {
-		return r.messages.GetAllMessages(), nil
-	}
-
-	if r.Type == enum.RoomType_Private {
-		if !r.IsUserAllowed(userId) {
-			return nil, errors.New(helper.Err_UserIsNotAllowedToUseThisRoom)
-		}
-
-		return r.messages.GetAllMessages(), nil
-	}
-
-	return nil, errors.New(helper.Err_UnknownRoomType)
+	return r.messages.GetAllMessages(), nil
 }
 func (r *Room) ListMessagesSince(userId common.ObjectId, timeMarkTS int64) (msgs []*msg.Message, err error) {
-	if !r.IsUserInsideRoom(userId) {
+	if !r.hasUserWithId(userId) {
 		return nil, errors.New(helper.Err_UserIsNotInTheRoom)
 	}
 
-	if r.Type == enum.RoomType_Public {
-		return r.messages.GetMessagesSince(timeMarkTS), nil
-	}
-
-	if r.Type == enum.RoomType_Private {
-		if !r.IsUserAllowed(userId) {
-			return nil, errors.New(helper.Err_UserIsNotAllowedToUseThisRoom)
-		}
-
-		return r.messages.GetMessagesSince(timeMarkTS), nil
-	}
-
-	return nil, errors.New(helper.Err_UnknownRoomType)
+	return r.messages.GetMessagesSince(timeMarkTS), nil
 }
 
 func (r *Room) hasUserWithId(userId common.ObjectId) bool {
