@@ -68,7 +68,7 @@ func (m *Messages) GetMessagesSince(timeBorderTS int64) (out []*msg.Message) {
 
 	firstMsgTimeDTS := m.messages[0].TimeOfCreationDTS()
 	lastMsgTimeDTS := m.messages[len(m.messages)-1].TimeOfCreationDTS()
-	avgMsgTimeDTS := (lastMsgTimeDTS - firstMsgTimeDTS) / 2
+	avgMsgTimeDTS := (lastMsgTimeDTS + firstMsgTimeDTS) / 2
 
 	if timeBorderDTS <= avgMsgTimeDTS {
 		// Read messages from the left end.

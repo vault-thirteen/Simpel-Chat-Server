@@ -17,10 +17,6 @@ type ListOfMessages struct {
 }
 
 func NewListOfMessages(roomId common.ObjectId, msgs []*msg.Message, nowTS int64, serverStartTimeTS int64, sinceTS *int64) (l *ListOfMessages) {
-	if msgs == nil {
-		return nil
-	}
-
 	l = &ListOfMessages{
 		OpTimeTS:          nowTS,
 		RoomId:            roomId,
