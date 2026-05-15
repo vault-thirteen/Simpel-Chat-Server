@@ -30,14 +30,15 @@ func NewRPC(
 	generator *generator.Generator,
 	adc *adc.ActiveDataController,
 	der *der.DatabaseErrorReporter,
-	chatUserSettings *settings.ChatUserSettings,
+	cus *settings.ChatUserSettings,
+	cms *settings.ChatMessageSettings,
 	chatServerName string,
 	pageSizeMax int,
 ) (rpc *RPC, err error) {
 	rpc = new(RPC)
 
 	// Controller.
-	rpc.controller = NewRpcController(chatFamilyName, v, db, mailer, generator, adc, der, chatUserSettings, chatServerName, pageSizeMax)
+	rpc.controller = NewRpcController(chatFamilyName, v, db, mailer, generator, adc, der, cus, cms, chatServerName, pageSizeMax)
 
 	// Processor.
 	{

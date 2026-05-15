@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/vault-thirteen/Simpel-Chat-Server/src/Chat/models/common"
-	"github.com/vault-thirteen/Simpel-Chat-Server/src/Chat/models/entities/persistent/Password"
+	"github.com/vault-thirteen/Simpel-Chat-Server/src/Chat/models/entities/persistent/password"
 	"github.com/vault-thirteen/Simpel-Chat-Server/src/helper"
 )
 

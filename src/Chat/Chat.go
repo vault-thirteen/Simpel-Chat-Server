@@ -86,8 +86,8 @@ func NewChat(settingsFilePath string, ver *ver.Versioneer) (c *Chat, err error) 
 	}
 
 	c.rpc, err = rpc.NewRPC(c.chatFamilyName, c.ver, c.database, c.mailer,
-		c.generator, c.adc, der.NewDatabaseErrorReporter(cec), c.settings.Users,
-		c.settings.Server.Name, c.settings.Other.PageSizeMax,
+		c.generator, c.adc, der.NewDatabaseErrorReporter(cec), c.settings.User,
+		c.settings.Message, c.settings.Server.Name, c.settings.Other.PageSizeMax,
 	)
 	if err != nil {
 		return nil, err
@@ -165,7 +165,7 @@ func (c *Chat) GetStoppedChan() *chan bool {
 
 func (c *Chat) sendStartupMessage() (err error) {
 	var administratorUsers []*usr.User
-	administratorUsers, err = c.database.ListAdministratorUsers(c.settings.Users.AdministratorIds)
+	administratorUsers, err = c.database.ListAdministratorUsers(c.settings.User.AdministratorIds)
 	if err != nil {
 		return err
 	}
@@ -205,7 +205,7 @@ func (c *Chat) sendShutdownMessage() (err error) {
 }
 func (c *Chat) sendNormalShutdownMessage() (err error) {
 	var administratorUsers []*usr.User
-	administratorUsers, err = c.database.ListAdministratorUsers(c.settings.Users.AdministratorIds)
+	administratorUsers, err = c.database.ListAdministratorUsers(c.settings.User.AdministratorIds)
 	if err != nil {
 		return err
 	}
@@ -230,7 +230,7 @@ func (c *Chat) sendNormalShutdownMessage() (err error) {
 }
 func (c *Chat) sendEmergencyShutdownMessage() (err error) {
 	var administratorUsers []*usr.User
-	administratorUsers, err = c.database.ListAdministratorUsers(c.settings.Users.AdministratorIds)
+	administratorUsers, err = c.database.ListAdministratorUsers(c.settings.User.AdministratorIds)
 	if err != nil {
 		return err
 	}

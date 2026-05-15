@@ -13,9 +13,9 @@ import (
 
 	"github.com/vault-thirteen/Simpel-Chat-Server/src/Chat/models/common"
 	"github.com/vault-thirteen/Simpel-Chat-Server/src/Chat/models/entities/persistent/Event"
-	"github.com/vault-thirteen/Simpel-Chat-Server/src/Chat/models/entities/persistent/Password"
 	"github.com/vault-thirteen/Simpel-Chat-Server/src/Chat/models/entities/persistent/Session"
 	"github.com/vault-thirteen/Simpel-Chat-Server/src/Chat/models/entities/persistent/User"
+	"github.com/vault-thirteen/Simpel-Chat-Server/src/Chat/models/entities/persistent/password"
 	"github.com/vault-thirteen/Simpel-Chat-Server/src/Chat/models/entities/persistent/room"
 	"github.com/vault-thirteen/Simpel-Chat-Server/src/Chat/models/enum"
 	"github.com/vault-thirteen/Simpel-Chat-Server/src/Chat/models/request"

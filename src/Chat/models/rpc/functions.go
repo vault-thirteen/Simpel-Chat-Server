@@ -35,5 +35,6 @@ const (
 	Func_RegisterUser2         = "RegisterUser2"
 	Func_ResetAllowedRoomUsers = "ResetAllowedRoomUsers"
 	Func_ResetRoomModerators   = "ResetRoomModerators"
+	Func_Settings              = "Settings"
 	Func_Version               = "Version"
 )

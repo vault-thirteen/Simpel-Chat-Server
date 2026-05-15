@@ -21,7 +21,7 @@ type ChatSettings struct {
 	Database *ChatDatabaseSettings `json:"database"`
 	Mailer   *ChatMailerSettings   `json:"mailer"`
 	Message  *ChatMessageSettings  `json:"message"`
-	Users    *ChatUserSettings     `json:"users"`
+	User     *ChatUserSettings     `json:"user"`
 	Other    *OtherChatSettings    `json:"other"`
 }
 
@@ -97,7 +97,7 @@ func (cs *ChatSettings) Validate() (err error) {
 		return err
 	}
 
-	err = cs.Users.Validate()
+	err = cs.User.Validate()
 	if err != nil {
 		return err
 	}

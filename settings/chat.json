@@ -38,11 +38,13 @@
       "messageSizeMax": 255,
       "roomNameLengthMax": 255
     },
-    "users": {
+    "user": {
       "administratorIds": [
         1
       ],
-      "isRegistrationEnabled": true
+      "isRegistrationEnabled": true,
+      "passwordLengthMin": 8,
+      "passwordLengthMax": 32
     },
     "other": {
       "requestIdLength": 8,

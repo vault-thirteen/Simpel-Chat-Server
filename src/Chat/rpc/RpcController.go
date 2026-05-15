@@ -17,9 +17,9 @@ import (
 	"github.com/vault-thirteen/Simpel-Chat-Server/src/Chat/mailer"
 	"github.com/vault-thirteen/Simpel-Chat-Server/src/Chat/models/common"
 	"github.com/vault-thirteen/Simpel-Chat-Server/src/Chat/models/entities/persistent/Event"
-	"github.com/vault-thirteen/Simpel-Chat-Server/src/Chat/models/entities/persistent/Password"
 	"github.com/vault-thirteen/Simpel-Chat-Server/src/Chat/models/entities/persistent/Session"
 	"github.com/vault-thirteen/Simpel-Chat-Server/src/Chat/models/entities/persistent/User"
+	"github.com/vault-thirteen/Simpel-Chat-Server/src/Chat/models/entities/persistent/password"
 	rm "github.com/vault-thirteen/Simpel-Chat-Server/src/Chat/models/entities/persistent/room"
 	lom "github.com/vault-thirteen/Simpel-Chat-Server/src/Chat/models/entities/volatile/ListOfMessages"
 	msg "github.com/vault-thirteen/Simpel-Chat-Server/src/Chat/models/entities/volatile/Message"
@@ -37,16 +37,18 @@ const (
 )
 
 type RpcController struct {
-	chatFamilyName   string
-	ver              *ver.Versioneer
-	db               *database.Database
-	mailer           *mailer.Mailer
-	generator        *generator.Generator
-	adc              *adc.ActiveDataController
-	der              *der.DatabaseErrorReporter
-	chatUserSettings *settings.ChatUserSettings
-	chatServerName   string
-	pageSizeMax      int
+	chatFamilyName      string
+	ver                 *ver.Versioneer
+	db                  *database.Database
+	mailer              *mailer.Mailer
+	generator           *generator.Generator
+	adc                 *adc.ActiveDataController
+	der                 *der.DatabaseErrorReporter
+	chatUserSettings    *settings.ChatUserSettings
+	chatMessageSettings *settings.ChatMessageSettings
+	chatServerName      string
+	pageSizeMax         int
+	pc                  *pwd.PasswordController
 }
 
 func NewRpcController(
@@ -57,21 +59,24 @@ func NewRpcController(
 	generator *generator.Generator,
 	adc *adc.ActiveDataController,
 	der *der.DatabaseErrorReporter,
-	chatUserSettings *settings.ChatUserSettings,
+	cus *settings.ChatUserSettings,
+	cms *settings.ChatMessageSettings,
 	chatServerName string,
 	pageSizeMax int,
 ) (rc *RpcController) {
 	rc = &RpcController{
-		chatFamilyName:   chatFamilyName,
-		ver:              ver,
-		db:               db,
-		mailer:           mailer,
-		generator:        generator,
-		adc:              adc,
-		der:              der,
-		chatUserSettings: chatUserSettings,
-		chatServerName:   chatServerName,
-		pageSizeMax:      pageSizeMax,
+		chatFamilyName:      chatFamilyName,
+		ver:                 ver,
+		db:                  db,
+		mailer:              mailer,
+		generator:           generator,
+		adc:                 adc,
+		der:                 der,
+		chatUserSettings:    cus,
+		chatMessageSettings: cms,
+		chatServerName:      chatServerName,
+		pageSizeMax:         pageSizeMax,
+		pc:                  pwd.NewPasswordController(cus.PasswordLengthMin, cus.PasswordLengthMax),
 	}
 
 	return rc
@@ -82,8 +87,9 @@ func (rc *RpcController) GetRpcFunctions() []jrm1.RpcFunction {
 		// Ping.
 		rc.Ping,
 
-		// Version & Name.
+		// Version & Settings.
 		rc.Version,
+		rc.Settings,
 
 		// Auth functions.
 		rc.RegisterUser1,
@@ -138,7 +144,7 @@ func (rc *RpcController) Ping(_ *json.RawMessage, _ *jrm1.ResponseMetaData) (res
 	return rqrp.PingResult{}, nil
 }
 
-// Version & Name.
+// Version & Settings.
 
 func (rc *RpcController) Version(_ *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
 	return rqrp.VersionResult{
@@ -147,6 +153,13 @@ func (rc *RpcController) Version(_ *json.RawMessage, _ *jrm1.ResponseMetaData) (
 		AppName:           rc.ver.ProgramName(),
 		AppVersionText:    rc.ver.ProgramVersionString(),
 		GolangVersionText: rc.ver.GoVersion(),
+	}, nil
+}
+func (rc *RpcController) Settings(_ *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
+	return rqrp.Settings{
+		MessageSizeMax:    rc.chatMessageSettings.MessageSizeMax,
+		PasswordLengthMin: rc.chatUserSettings.PasswordLengthMin,
+		PasswordLengthMax: rc.chatUserSettings.PasswordLengthMax,
 	}, nil
 }
 
@@ -295,7 +308,7 @@ func (rc *RpcController) registerUser2(p *rqrp.RegisterUser2Params) (result *rqr
 		if len(p.UserPassword) == 0 {
 			return nil, re.NewRpcError_FieldNotSet(rpc.Field_UserPassword)
 		}
-		if !pwd.IsPasswordValid(p.UserPassword) {
+		if !rc.pc.IsPasswordTextValid(p.UserPassword) {
 			return nil, re.NewRpcError_FieldValueIsNotValid(rpc.Field_UserPassword)
 		}
 
@@ -541,7 +554,7 @@ func (rc *RpcController) logIn2(p *rqrp.LogIn2Params) (result *rqrp.LogIn2Result
 		if len(p.UserPassword) == 0 {
 			return nil, re.NewRpcError_FieldNotSet(rpc.Field_UserPassword)
 		}
-		if !pwd.IsPasswordValid(p.UserPassword) {
+		if !rc.pc.IsPasswordTextValid(p.UserPassword) {
 			return nil, re.NewRpcError_FieldValueIsNotValid(rpc.Field_UserPassword)
 		}
 
@@ -918,19 +931,19 @@ func (rc *RpcController) changePassword2(p *rqrp.ChangePassword2Params) (result 
 		if len(p.UserPassword) == 0 {
 			return nil, re.NewRpcError_FieldNotSet(rpc.Field_UserPassword)
 		}
-		if !pwd.IsPasswordValid(p.UserPassword) {
+		if !rc.pc.IsPasswordTextValid(p.UserPassword) {
 			return nil, re.NewRpcError_FieldValueIsNotValid(rpc.Field_UserPassword)
 		}
 		if len(p.NewUserPassword1) == 0 {
 			return nil, re.NewRpcError_FieldNotSet(rpc.Field_UserPassword)
 		}
-		if !pwd.IsPasswordValid(p.NewUserPassword1) {
+		if !rc.pc.IsPasswordTextValid(p.NewUserPassword1) {
 			return nil, re.NewRpcError_FieldValueIsNotValid(rpc.Field_UserPassword)
 		}
 		if len(p.NewUserPassword2) == 0 {
 			return nil, re.NewRpcError_FieldNotSet(rpc.Field_UserPassword)
 		}
-		if !pwd.IsPasswordValid(p.NewUserPassword2) {
+		if !rc.pc.IsPasswordTextValid(p.NewUserPassword2) {
 			return nil, re.NewRpcError_FieldValueIsNotValid(rpc.Field_UserPassword)
 		}
 		if p.NewUserPassword1 != p.NewUserPassword2 {
