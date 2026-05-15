@@ -156,7 +156,7 @@ func (rc *RpcController) Version(_ *json.RawMessage, _ *jrm1.ResponseMetaData) (
 	}, nil
 }
 func (rc *RpcController) Settings(_ *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
-	return rqrp.Settings{
+	return rqrp.SettingsResult{
 		MessageSizeMax:    rc.chatMessageSettings.MessageSizeMax,
 		PasswordLengthMin: rc.chatUserSettings.PasswordLengthMin,
 		PasswordLengthMax: rc.chatUserSettings.PasswordLengthMax,
