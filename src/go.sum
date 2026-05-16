@@ -17,10 +17,10 @@ github.com/rogpeppe/go-internal v1.14.1 h1:UQB4HGPB6osV0SQTLymcB4TgvyWu6ZyliaW0t
 github.com/rogpeppe/go-internal v1.14.1/go.mod h1:MaRKkUm5W0goXpeCfT7UZI6fk/L7L7so1lCWt35ZSgc=
 github.com/valord577/mailx v0.6.20240511 h1:ZWVhvp+4p2xW5P+wWAAXdNz+qF46OcZewJu2s5+nw9o=
 github.com/valord577/mailx v0.6.20240511/go.mod h1:aGgPawsLOerLCxf7XU9jnke7B0lyp5Bl5JhsufWBwS0=
-github.com/vault-thirteen/JSON-RPC-M1 v0.3.25 h1:j3qG97QhoRIt8l+cj5JwfFJvr19gAiF6nNMobqFZxWc=
-github.com/vault-thirteen/JSON-RPC-M1 v0.3.25/go.mod h1:NgNybcYYyHOMwxNxPmVMnHfeIztlSdZmhdFI16mCrtQ=
-github.com/vault-thirteen/auxie v0.36.4 h1:clVLZQ3hDXgpPaRVY5ktCx3Ub8ksXM+Ki+mLYG80oDo=
-github.com/vault-thirteen/auxie v0.36.4/go.mod h1:e3YbWpkKbuQgigZS6+y8lbNuSFfXn/BX1IHzSaJDzIs=
+github.com/vault-thirteen/JSON-RPC-M1 v0.3.26 h1:rfitQwnAVBskb5nnVJ3xroyeSMTsV+UBULG0/Uz38Dk=
+github.com/vault-thirteen/JSON-RPC-M1 v0.3.26/go.mod h1:PSIjuRZ/o/ACD9jTXiGX6Wyr+Ze74EKY1hvv7m0AaHA=
+github.com/vault-thirteen/auxie v0.36.5 h1:8PHeARDBS3+6iGAbG/1ga0GLiGfCklrb/+QN9WCjmNc=
+github.com/vault-thirteen/auxie v0.36.5/go.mod h1:SonboDhVK0Sx8Zycp40/uapGhVTMTq6KqkYhSuv9PP0=
 golang.org/x/sys v0.44.0 h1:ildZl3J4uzeKP07r2F++Op7E9B29JRUy+a27EibtBTQ=
 golang.org/x/sys v0.44.0/go.mod h1:4GL1E5IUh+htKOUEOaiffhrAeqysfVGipDYzABqnCmw=
 golang.org/x/term v0.43.0 h1:S4RLU2sB31O/NCl+zFN9Aru9A/Cq2aqKpTZJ6B+DwT4=
