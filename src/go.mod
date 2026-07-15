@@ -1,16 +1,16 @@
 module github.com/vault-thirteen/Simpel-Chat-Server/src
 
-go 1.25.10
+go 1.25.12
 
 require (
 	github.com/go-sql-driver/mysql v1.10.0
 	github.com/valord577/mailx v0.6.20240511
-	github.com/vault-thirteen/JSON-RPC-M1 v0.3.26
-	github.com/vault-thirteen/auxie v0.36.5
-	golang.org/x/sys v0.44.0
-	golang.org/x/term v0.43.0
+	github.com/vault-thirteen/JSON-RPC-M1 v0.3.27
+	github.com/vault-thirteen/auxie v0.36.6
+	golang.org/x/sys v0.47.0
+	golang.org/x/term v0.45.0
 	gorm.io/driver/mysql v1.6.0
-	gorm.io/gorm v1.31.1
+	gorm.io/gorm v1.31.2
 )
 
 require (
@@ -19,6 +19,6 @@ require (
 	github.com/jinzhu/now v1.1.5 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/kr/text v0.2.0 // indirect
-	github.com/rogpeppe/go-internal v1.14.1 // indirect
-	golang.org/x/text v0.37.0 // indirect
+	github.com/rogpeppe/go-internal v1.15.0 // indirect
+	golang.org/x/text v0.40.0 // indirect
 )
