@@ -85,8 +85,8 @@ folder.
 
 > go install github.com/vault-thirteen/Simpel-Chat-Server/src@latest
 
-5. Replace the executable file created by build script by the file received 
-with `go install` command.
+5. Replace the executable file created by the build script with the file 
+received with `go install` command.
 
 6. Say "Thank you" to the developers of Go language for not fixing old bugs in 
 `go install` tool, for old bugs with versioning and many other old bugs in Go 
