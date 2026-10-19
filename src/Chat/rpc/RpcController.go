@@ -1,0 +1,2461 @@
+package rpc
+
+import (
+	"encoding/json"
+	"errors"
+	"math"
+	"time"
+
+	jrm1 "github.com/vault-thirteen/JSON-RPC-M1"
+	ver "github.com/vault-thirteen/auxie/Versioneer/classes/Versioneer"
+	"gorm.io/gorm"
+
+	"github.com/vault-thirteen/Simpel-Chat-Server/src/Chat/adc"
+	"github.com/vault-thirteen/Simpel-Chat-Server/src/Chat/database"
+	"github.com/vault-thirteen/Simpel-Chat-Server/src/Chat/der"
+	"github.com/vault-thirteen/Simpel-Chat-Server/src/Chat/generator"
+	"github.com/vault-thirteen/Simpel-Chat-Server/src/Chat/mailer"
+	"github.com/vault-thirteen/Simpel-Chat-Server/src/Chat/models/common"
+	"github.com/vault-thirteen/Simpel-Chat-Server/src/Chat/models/entities/persistent/Event"
+	"github.com/vault-thirteen/Simpel-Chat-Server/src/Chat/models/entities/persistent/Session"
+	"github.com/vault-thirteen/Simpel-Chat-Server/src/Chat/models/entities/persistent/User"
+	"github.com/vault-thirteen/Simpel-Chat-Server/src/Chat/models/entities/persistent/password"
+	rm "github.com/vault-thirteen/Simpel-Chat-Server/src/Chat/models/entities/persistent/room"
+	lom "github.com/vault-thirteen/Simpel-Chat-Server/src/Chat/models/entities/volatile/ListOfMessages"
+	msg "github.com/vault-thirteen/Simpel-Chat-Server/src/Chat/models/entities/volatile/Message"
+	"github.com/vault-thirteen/Simpel-Chat-Server/src/Chat/models/enum"
+	"github.com/vault-thirteen/Simpel-Chat-Server/src/Chat/models/request"
+	"github.com/vault-thirteen/Simpel-Chat-Server/src/Chat/models/rpc"
+	"github.com/vault-thirteen/Simpel-Chat-Server/src/Chat/models/rpc/rqrp"
+	re "github.com/vault-thirteen/Simpel-Chat-Server/src/Chat/rpc/errors"
+	"github.com/vault-thirteen/Simpel-Chat-Server/src/Chat/settings"
+	"github.com/vault-thirteen/Simpel-Chat-Server/src/helper"
+)
+
+const (
+	ShortStringLenMax = 255
+)
+
+type RpcController struct {
+	chatFamilyName      string
+	ver                 *ver.Versioneer
+	db                  *database.Database
+	mailer              *mailer.Mailer
+	generator           *generator.Generator
+	adc                 *adc.ActiveDataController
+	der                 *der.DatabaseErrorReporter
+	chatUserSettings    *settings.ChatUserSettings
+	chatMessageSettings *settings.ChatMessageSettings
+	chatServerName      string
+	pageSizeMax         int
+	pc                  *pwd.PasswordController
+}
+
+func NewRpcController(
+	chatFamilyName string,
+	ver *ver.Versioneer,
+	db *database.Database,
+	mailer *mailer.Mailer,
+	generator *generator.Generator,
+	adc *adc.ActiveDataController,
+	der *der.DatabaseErrorReporter,
+	cus *settings.ChatUserSettings,
+	cms *settings.ChatMessageSettings,
+	chatServerName string,
+	pageSizeMax int,
+) (rc *RpcController) {
+	rc = &RpcController{
+		chatFamilyName:      chatFamilyName,
+		ver:                 ver,
+		db:                  db,
+		mailer:              mailer,
+		generator:           generator,
+		adc:                 adc,
+		der:                 der,
+		chatUserSettings:    cus,
+		chatMessageSettings: cms,
+		chatServerName:      chatServerName,
+		pageSizeMax:         pageSizeMax,
+		pc:                  pwd.NewPasswordController(cus.PasswordLengthMin, cus.PasswordLengthMax),
+	}
+
+	return rc
+}
+
+func (rc *RpcController) GetRpcFunctions() []jrm1.RpcFunction {
+	return []jrm1.RpcFunction{
+		// Ping.
+		rc.Ping,
+
+		// Version & Settings.
+		rc.Version,
+		rc.Settings,
+
+		// Auth functions.
+		rc.RegisterUser1,
+		rc.RegisterUser2,
+		rc.LogIn1,
+		rc.LogIn2,
+		rc.LogOut1,
+		rc.LogOut2,
+		rc.ChangePassword1,
+		rc.ChangePassword2,
+		rc.BanUser,
+		rc.IsMeAdministrator,
+
+		// Room functions.
+		rc.AddRoom,
+		rc.DeleteRoom,
+		rc.ListRooms,
+
+		// Room Moderator functions.
+		rc.AddRoomModerator,
+		rc.DeleteRoomModerator,
+		rc.ListRoomModerators,
+		rc.ResetRoomModerators,
+
+		// Allowed Room User functions.
+		rc.AddAllowedRoomUser,
+		rc.DeleteAllowedRoomUser,
+		rc.ListAllowedRoomUsers,
+		rc.ResetAllowedRoomUsers,
+
+		// User Room functions.
+		rc.EnterRoom,
+		rc.LeaveRoom,
+		rc.GetMyRoomId,
+		rc.GetRoom,
+		rc.GetRoomUsers,
+
+		// Message functions.
+		rc.AddMessage,
+		rc.ListAllMessages,
+		rc.ListMessagesSince,
+
+		// User functions.
+		rc.GetUser,
+		rc.ListUsers,
+	}
+}
+
+// Ping.
+
+func (rc *RpcController) Ping(_ *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
+	return rqrp.PingResult{}, nil
+}
+
+// Version & Settings.
+
+func (rc *RpcController) Version(_ *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
+	return rqrp.VersionResult{
+		ServerName:        rc.chatServerName,
+		ChatFamily:        rc.chatFamilyName,
+		AppName:           rc.ver.ProgramName(),
+		AppVersionText:    rc.ver.ProgramVersionString(),
+		GolangVersionText: rc.ver.GoVersion(),
+	}, nil
+}
+func (rc *RpcController) Settings(_ *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
+	return rqrp.SettingsResult{
+		MessageSizeMax:    rc.chatMessageSettings.MessageSizeMax,
+		PasswordLengthMin: rc.chatUserSettings.PasswordLengthMin,
+		PasswordLengthMax: rc.chatUserSettings.PasswordLengthMax,
+	}, nil
+}
+
+// Auth functions.
+
+func (rc *RpcController) RegisterUser1(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
+	var p *rqrp.RegisterUser1Params
+	rpcErr = jrm1.ParseParameters(params, &p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	var r *rqrp.RegisterUser1Result
+	r, rpcErr = rc.registerUser1(p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	return r, nil
+}
+func (rc *RpcController) registerUser1(p *rqrp.RegisterUser1Params) (result *rqrp.RegisterUser1Result, rpcErr *jrm1.RpcError) {
+	// Is registration enabled ?
+	{
+		if !rc.chatUserSettings.IsRegistrationEnabled {
+			return nil, re.NewRpcError_RegistrationIsDisabled(nil)
+		}
+	}
+
+	// Check input data.
+	{
+		if len(p.EMailAddress) == 0 {
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_EMailAddress)
+		}
+		if !usr.IsUserEmailLenValid(p.EMailAddress) {
+			return nil, re.NewRpcError_FieldValueIsNotValid(rpc.Field_EMailAddress)
+		}
+		if !helper.IsEmailAddressValid(p.EMailAddress) {
+			return nil, re.NewRpcError_FieldValueIsNotValid(rpc.Field_EMailAddress)
+		}
+	}
+
+	// Is e-mail address already used ?
+	{
+		isEmailAddressUsed, err := rc.db.IsEmailAddressUsed(p.EMailAddress)
+		if err != nil {
+			return nil, rc.der.DatabaseError(err)
+		}
+
+		if isEmailAddressUsed {
+			// Make hackers' life a bit more difficult.
+			err = helper.SleepBeforeReturningFakeRequestId()
+			if err != nil {
+				return nil, re.NewRpcError_RequestIdGenerator(err)
+			}
+
+			var fakeRequestId *string
+			fakeRequestId, err = rc.generator.RIDG().CreatePassword()
+			if err != nil {
+				return nil, re.NewRpcError_RequestIdGenerator(err)
+			}
+
+			result = &rqrp.RegisterUser1Result{RequestId: *fakeRequestId}
+			return result, nil
+		}
+	}
+
+	// Start user registration.
+	{
+		requestId, err := rc.generator.RIDG().CreatePassword()
+		if err != nil {
+			return nil, re.NewRpcError_RequestIdGenerator(err)
+		}
+
+		var verificationCode *string
+		verificationCode, err = rc.generator.VCG().CreatePassword()
+		if err != nil {
+			return nil, re.NewRpcError_VerificationCodeGenerator(err)
+		}
+
+		err = rc.mailer.SendVerificationCode(*verificationCode, p.EMailAddress)
+		if err != nil {
+			return nil, re.NewRpcError_MailerError(err)
+		}
+
+		var reg = rq.Registration{
+			Email:            p.EMailAddress,
+			RequestId:        *requestId,
+			VerificationCode: *verificationCode,
+		}
+
+		err = rc.db.CreateRegistrationRequest(&reg)
+		if err != nil {
+			return nil, rc.der.DatabaseError(err)
+		}
+
+		result = &rqrp.RegisterUser1Result{RequestId: *requestId}
+		return result, nil
+	}
+}
+func (rc *RpcController) RegisterUser2(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
+	var p *rqrp.RegisterUser2Params
+	rpcErr = jrm1.ParseParameters(params, &p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	var r *rqrp.RegisterUser2Result
+	r, rpcErr = rc.registerUser2(p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	return r, nil
+}
+func (rc *RpcController) registerUser2(p *rqrp.RegisterUser2Params) (result *rqrp.RegisterUser2Result, rpcErr *jrm1.RpcError) {
+	// Is registration enabled ?
+	{
+		if !rc.chatUserSettings.IsRegistrationEnabled {
+			return nil, re.NewRpcError_RegistrationIsDisabled(nil)
+		}
+	}
+
+	// Check input data.
+	{
+		if len(p.EMailAddress) == 0 {
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_EMailAddress)
+		}
+		if !usr.IsUserEmailLenValid(p.EMailAddress) {
+			return nil, re.NewRpcError_FieldValueIsNotValid(rpc.Field_EMailAddress)
+		}
+		if !helper.IsEmailAddressValid(p.EMailAddress) {
+			return nil, re.NewRpcError_FieldValueIsNotValid(rpc.Field_EMailAddress)
+		}
+		if len(p.RequestId) == 0 {
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_RequestId)
+		}
+		if len(p.VerificationCode) == 0 {
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_VerificationCode)
+		}
+		if len(p.UserName) == 0 {
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_UserName)
+		}
+		if !usr.IsUserNameLenValid(p.UserName) {
+			return nil, re.NewRpcError_FieldValueIsNotValid(rpc.Field_UserName)
+		}
+		if len(p.UserPassword) == 0 {
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_UserPassword)
+		}
+		if !rc.pc.IsPasswordTextValid(p.UserPassword) {
+			return nil, re.NewRpcError_FieldValueIsNotValid(rpc.Field_UserPassword)
+		}
+
+		rpcErr = rc.checkShortStringsLen([]string{p.VerificationCode, p.RequestId})
+		if rpcErr != nil {
+			return nil, rpcErr
+		}
+	}
+
+	// Check the verification code.
+	{
+		var rr = &rq.Registration{RequestId: p.RequestId}
+		err := rc.db.FindRegistrationRequest(rr)
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				// Fraud.
+				err = helper.SleepBeforeFraudResponse()
+				if err != nil {
+					return nil, re.NewRpcError_RequestIdGenerator(err)
+				}
+
+				return nil, re.NewRpcError_Failure(nil)
+			}
+
+			return nil, rc.der.DatabaseError(err)
+		}
+
+		if (rr.Email != p.EMailAddress) || (rr.VerificationCode != p.VerificationCode) {
+			err = helper.SleepBeforeReportingFailedVerificationCode()
+			if err != nil {
+				return nil, re.NewRpcError_RequestIdGenerator(err)
+			}
+
+			return nil, re.NewRpcError_Failure(nil)
+		}
+	}
+
+	var user *usr.User
+
+	// Register the user.
+	{
+		user = &usr.User{
+			Name:         p.UserName,
+			EmailAddress: p.EMailAddress,
+			RegisterTime: time.Now().UTC(),
+		}
+
+		rr := new(rq.Registration)
+		err := rc.db.GetRegistrationRequestByEmail(p.EMailAddress, rr)
+		if err != nil {
+			return nil, rc.der.DatabaseError(err)
+		}
+
+		err = rc.db.CreateUser(user, p.UserPassword)
+		if err != nil {
+			return nil, rc.der.DatabaseError(err)
+		}
+
+		err = rc.db.DeleteRegistrationRequest(rr)
+		if err != nil {
+			return nil, rc.der.DatabaseError(err)
+		}
+
+		err = rc.mailer.SendRegistrationSuccess(user.EmailAddress)
+		if err != nil {
+			return nil, re.NewRpcError_MailerError(err)
+		}
+	}
+
+	// Event report.
+	{
+		event := &ev.Event{
+			ActorId:      user.Id,
+			Type:         enum.EventType_UserRegistration,
+			TargetUserId: nil,
+		}
+
+		err := rc.db.CreateEvent(event)
+		if err != nil {
+			return nil, rc.der.DatabaseError(err)
+		}
+	}
+
+	return &rqrp.RegisterUser2Result{}, nil
+}
+func (rc *RpcController) LogIn1(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
+	var p *rqrp.LogIn1Params
+	rpcErr = jrm1.ParseParameters(params, &p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	var r *rqrp.LogIn1Result
+	r, rpcErr = rc.logIn1(p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	return r, nil
+}
+func (rc *RpcController) logIn1(p *rqrp.LogIn1Params) (result *rqrp.LogIn1Result, rpcErr *jrm1.RpcError) {
+	// Check input data.
+	{
+		if len(p.EMailAddress) == 0 {
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_EMailAddress)
+		}
+		if !usr.IsUserEmailLenValid(p.EMailAddress) {
+			return nil, re.NewRpcError_FieldValueIsNotValid(rpc.Field_EMailAddress)
+		}
+		if !helper.IsEmailAddressValid(p.EMailAddress) {
+			return nil, re.NewRpcError_FieldValueIsNotValid(rpc.Field_EMailAddress)
+		}
+	}
+
+	// Does this user exist ?
+	{
+		userExists, err := rc.db.ExistsUserWithEmail(p.EMailAddress)
+		if err != nil {
+			return nil, rc.der.DatabaseError(err)
+		}
+
+		if !userExists {
+			// Make hackers' life a bit more difficult.
+			err = helper.SleepBeforeReturningFakeRequestId()
+			if err != nil {
+				return nil, re.NewRpcError_RequestIdGenerator(err)
+			}
+
+			var fakeRequestId *string
+			fakeRequestId, err = rc.generator.RIDG().CreatePassword()
+			if err != nil {
+				return nil, re.NewRpcError_RequestIdGenerator(err)
+			}
+
+			result = &rqrp.LogIn1Result{RequestId: *fakeRequestId}
+			return result, nil
+		}
+	}
+
+	// Is user banned ?
+	{
+		isUserWithEmailBanned, err := rc.db.IsUserWithEmailBanned(p.EMailAddress)
+		if err != nil {
+			return nil, rc.der.DatabaseError(err)
+		}
+
+		if isUserWithEmailBanned {
+			return nil, re.NewRpcError_UserIsBanned(err)
+		}
+	}
+
+	// Is user already logged in ?
+	{
+		isLoggedIn, err := rc.db.IsUserWithEmailLoggedIn(p.EMailAddress)
+		if err != nil {
+			return nil, rc.der.DatabaseError(err)
+		}
+
+		if isLoggedIn {
+			// Make hackers' life a bit more difficult.
+			err = helper.SleepBeforeReturningFakeRequestId()
+			if err != nil {
+				return nil, re.NewRpcError_RequestIdGenerator(err)
+			}
+
+			var fakeRequestId *string
+			fakeRequestId, err = rc.generator.RIDG().CreatePassword()
+			if err != nil {
+				return nil, re.NewRpcError_RequestIdGenerator(err)
+			}
+
+			result = &rqrp.LogIn1Result{RequestId: *fakeRequestId}
+			return result, nil
+		}
+	}
+
+	// Start logging in.
+	{
+		requestId, err := rc.generator.RIDG().CreatePassword()
+		if err != nil {
+			return nil, re.NewRpcError_RequestIdGenerator(err)
+		}
+
+		var verificationCode *string
+		verificationCode, err = rc.generator.VCG().CreatePassword()
+		if err != nil {
+			return nil, re.NewRpcError_VerificationCodeGenerator(err)
+		}
+
+		err = rc.mailer.SendVerificationCode(*verificationCode, p.EMailAddress)
+		if err != nil {
+			return nil, re.NewRpcError_MailerError(err)
+		}
+
+		var lir = rq.LogIn{
+			Email:            p.EMailAddress,
+			RequestId:        *requestId,
+			VerificationCode: *verificationCode,
+		}
+
+		err = rc.db.CreateLogInRequest(&lir)
+		if err != nil {
+			return nil, rc.der.DatabaseError(err)
+		}
+
+		result = &rqrp.LogIn1Result{RequestId: *requestId}
+		return result, nil
+	}
+}
+func (rc *RpcController) LogIn2(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
+	var p *rqrp.LogIn2Params
+	rpcErr = jrm1.ParseParameters(params, &p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	var r *rqrp.LogIn2Result
+	r, rpcErr = rc.logIn2(p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	return r, nil
+}
+func (rc *RpcController) logIn2(p *rqrp.LogIn2Params) (result *rqrp.LogIn2Result, rpcErr *jrm1.RpcError) {
+	// Check input data.
+	{
+		if len(p.EMailAddress) == 0 {
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_EMailAddress)
+		}
+		if !usr.IsUserEmailLenValid(p.EMailAddress) {
+			return nil, re.NewRpcError_FieldValueIsNotValid(rpc.Field_EMailAddress)
+		}
+		if !helper.IsEmailAddressValid(p.EMailAddress) {
+			return nil, re.NewRpcError_FieldValueIsNotValid(rpc.Field_EMailAddress)
+		}
+		if len(p.RequestId) == 0 {
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_RequestId)
+		}
+		if len(p.VerificationCode) == 0 {
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_VerificationCode)
+		}
+		if len(p.UserPassword) == 0 {
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_UserPassword)
+		}
+		if !rc.pc.IsPasswordTextValid(p.UserPassword) {
+			return nil, re.NewRpcError_FieldValueIsNotValid(rpc.Field_UserPassword)
+		}
+
+		rpcErr = rc.checkShortStringsLen([]string{p.VerificationCode, p.RequestId})
+		if rpcErr != nil {
+			return nil, rpcErr
+		}
+	}
+
+	// Does this user exist ?
+	{
+		userExists, err := rc.db.ExistsUserWithEmail(p.EMailAddress)
+		if err != nil {
+			return nil, rc.der.DatabaseError(err)
+		}
+
+		if !userExists {
+			// Make hackers' life a bit more difficult.
+			err = helper.SleepBeforeReturningFakeRequestId()
+			if err != nil {
+				return nil, re.NewRpcError_RequestIdGenerator(err)
+			}
+
+			return nil, re.NewRpcError_Failure(nil)
+		}
+	}
+
+	// Is user banned ?
+	{
+		isUserWithEmailBanned, err := rc.db.IsUserWithEmailBanned(p.EMailAddress)
+		if err != nil {
+			return nil, rc.der.DatabaseError(err)
+		}
+
+		if isUserWithEmailBanned {
+			return nil, re.NewRpcError_UserIsBanned(err)
+		}
+	}
+
+	// Is user already logged in ?
+	{
+		isLoggedIn, err := rc.db.IsUserWithEmailLoggedIn(p.EMailAddress)
+		if err != nil {
+			return nil, rc.der.DatabaseError(err)
+		}
+
+		if isLoggedIn {
+			// Make hackers' life a bit more difficult.
+			err = helper.SleepBeforeReturningFakeRequestId()
+			if err != nil {
+				return nil, re.NewRpcError_RequestIdGenerator(err)
+			}
+
+			return nil, re.NewRpcError_Failure(nil)
+		}
+	}
+
+	// Check the verification code.
+	{
+		var lir = &rq.LogIn{RequestId: p.RequestId}
+		err := rc.db.FindLogInRequest(lir)
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				// Fraud.
+				err = helper.SleepBeforeFraudResponse()
+				if err != nil {
+					return nil, re.NewRpcError_RequestIdGenerator(err)
+				}
+
+				return nil, re.NewRpcError_Failure(nil)
+			}
+
+			return nil, rc.der.DatabaseError(err)
+		}
+
+		if (lir.Email != p.EMailAddress) || (lir.VerificationCode != p.VerificationCode) {
+			err = helper.SleepBeforeReportingFailedVerificationCode()
+			if err != nil {
+				return nil, re.NewRpcError_RequestIdGenerator(err)
+			}
+
+			return nil, re.NewRpcError_Failure(nil)
+		}
+	}
+
+	var user = &usr.User{
+		EmailAddress: p.EMailAddress,
+	}
+
+	// Check password.
+	{
+		err := rc.db.FindUserWithEmail(user)
+		if err != nil {
+			return nil, rc.der.DatabaseError(err)
+		}
+
+		var ok bool
+		ok, err = rc.db.CheckUserPassword(user, &p.UserPassword)
+		if err != nil {
+			return nil, rc.der.DatabaseError(err)
+		}
+
+		if !ok {
+			return nil, re.NewRpcError_WrongPassword(nil)
+		}
+	}
+
+	var token *string
+
+	// Log the user in.
+	{
+		lir := new(rq.LogIn)
+		err := rc.db.GetLogInRequestByEmail(p.EMailAddress, lir)
+		if err != nil {
+			return nil, rc.der.DatabaseError(err)
+		}
+
+		err = rc.db.DeleteLogInRequest(lir)
+		if err != nil {
+			return nil, rc.der.DatabaseError(err)
+		}
+
+		token, rpcErr = rc.adc.StartSession(user.Id)
+		if rpcErr != nil {
+			return nil, rpcErr
+		}
+	}
+
+	// Event report.
+	{
+		event := &ev.Event{
+			ActorId:      user.Id,
+			Type:         enum.EventType_UserLogIn,
+			TargetUserId: nil,
+		}
+
+		err := rc.db.CreateEvent(event)
+		if err != nil {
+			return nil, rc.der.DatabaseError(err)
+		}
+	}
+
+	result = &rqrp.LogIn2Result{
+		Token: *token,
+	}
+	return result, nil
+}
+func (rc *RpcController) LogOut1(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
+	var p *rqrp.LogOut1Params
+	rpcErr = jrm1.ParseParameters(params, &p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	var r *rqrp.LogOut1Result
+	r, rpcErr = rc.logOut1(p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	return r, nil
+}
+func (rc *RpcController) logOut1(p *rqrp.LogOut1Params) (result *rqrp.LogOut1Result, rpcErr *jrm1.RpcError) {
+	var session *ses.Session
+	session, rpcErr = rc.getUserSession(p.Auth)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	session.TouchLastActivityTime()
+
+	// Start logging out.
+	{
+		requestId, err := rc.generator.RIDG().CreatePassword()
+		if err != nil {
+			return nil, re.NewRpcError_RequestIdGenerator(err)
+		}
+
+		var lor = rq.LogOut{
+			UserId:    session.UserId,
+			RequestId: *requestId,
+		}
+
+		err = rc.db.CreateLogOutRequest(&lor)
+		if err != nil {
+			return nil, rc.der.DatabaseError(err)
+		}
+
+		result = &rqrp.LogOut1Result{RequestId: *requestId}
+		return result, nil
+	}
+}
+func (rc *RpcController) LogOut2(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
+	var p *rqrp.LogOut2Params
+	rpcErr = jrm1.ParseParameters(params, &p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	var r *rqrp.LogOut2Result
+	r, rpcErr = rc.logOut2(p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	return r, nil
+}
+func (rc *RpcController) logOut2(p *rqrp.LogOut2Params) (result *rqrp.LogOut2Result, rpcErr *jrm1.RpcError) {
+	var session *ses.Session
+	session, rpcErr = rc.getUserSession(p.Auth)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	session.TouchLastActivityTime()
+
+	// Check input data.
+	{
+		if len(p.RequestId) == 0 {
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_RequestId)
+		}
+
+		rpcErr = rc.checkShortStringsLen([]string{p.RequestId})
+		if rpcErr != nil {
+			return nil, rpcErr
+		}
+	}
+
+	var lor *rq.LogOut
+
+	// Check for fraud.
+	{
+		lor = new(rq.LogOut)
+		err := rc.db.GetLogOutRequestByRequestId(p.RequestId, lor)
+		if err != nil {
+			return nil, rc.der.DatabaseError(err)
+		}
+
+		if session.UserId != lor.UserId {
+			// Fraud.
+			err = helper.SleepBeforeFraudResponse()
+			if err != nil {
+				return nil, re.NewRpcError_RequestIdGenerator(err)
+			}
+
+			return nil, re.NewRpcError_Failure(nil)
+		}
+	}
+
+	// Log the user out.
+	{
+		err := rc.db.DeleteLogOutRequest(lor)
+		if err != nil {
+			return nil, rc.der.DatabaseError(err)
+		}
+
+		rpcErr = rc.adc.StopExistingSession(session, p.Auth.Token)
+		if rpcErr != nil {
+			return nil, rpcErr
+		}
+	}
+
+	// Event report.
+	{
+		event := &ev.Event{
+			ActorId:      session.UserId,
+			Type:         enum.EventType_UserLogOut,
+			TargetUserId: nil,
+		}
+
+		err := rc.db.CreateEvent(event)
+		if err != nil {
+			return nil, rc.der.DatabaseError(err)
+		}
+	}
+
+	return &rqrp.LogOut2Result{}, nil
+}
+func (rc *RpcController) ChangePassword1(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
+	var p *rqrp.ChangePassword1Params
+	rpcErr = jrm1.ParseParameters(params, &p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	var r *rqrp.ChangePassword1Result
+	r, rpcErr = rc.changePassword1(p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	return r, nil
+}
+func (rc *RpcController) changePassword1(p *rqrp.ChangePassword1Params) (result *rqrp.ChangePassword1Result, rpcErr *jrm1.RpcError) {
+	var session *ses.Session
+	session, rpcErr = rc.getUserSession(p.Auth)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	session.TouchLastActivityTime()
+
+	var user *usr.User
+	user, rpcErr = rc.getUserBySession(session)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	// Start changing password.
+	{
+		requestId, err := rc.generator.RIDG().CreatePassword()
+		if err != nil {
+			return nil, re.NewRpcError_RequestIdGenerator(err)
+		}
+
+		var verificationCode *string
+		verificationCode, err = rc.generator.VCG().CreatePassword()
+		if err != nil {
+			return nil, re.NewRpcError_VerificationCodeGenerator(err)
+		}
+
+		err = rc.mailer.SendVerificationCode(*verificationCode, user.EmailAddress)
+		if err != nil {
+			return nil, re.NewRpcError_MailerError(err)
+		}
+
+		var pcr = rq.ChangePassword{
+			UserId:           user.Id,
+			RequestId:        *requestId,
+			VerificationCode: *verificationCode,
+		}
+
+		err = rc.db.CreatePasswordChangeRequest(&pcr)
+		if err != nil {
+			return nil, rc.der.DatabaseError(err)
+		}
+
+		result = &rqrp.ChangePassword1Result{RequestId: *requestId}
+		return result, nil
+	}
+}
+func (rc *RpcController) ChangePassword2(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
+	var p *rqrp.ChangePassword2Params
+	rpcErr = jrm1.ParseParameters(params, &p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	var r *rqrp.ChangePassword2Result
+	r, rpcErr = rc.changePassword2(p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	return r, nil
+}
+func (rc *RpcController) changePassword2(p *rqrp.ChangePassword2Params) (result *rqrp.ChangePassword2Result, rpcErr *jrm1.RpcError) {
+	var session *ses.Session
+	session, rpcErr = rc.getUserSession(p.Auth)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	session.TouchLastActivityTime()
+
+	// Check input data.
+	{
+		if len(p.RequestId) == 0 {
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_RequestId)
+		}
+		if len(p.VerificationCode) == 0 {
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_VerificationCode)
+		}
+		if len(p.UserPassword) == 0 {
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_UserPassword)
+		}
+		if !rc.pc.IsPasswordTextValid(p.UserPassword) {
+			return nil, re.NewRpcError_FieldValueIsNotValid(rpc.Field_UserPassword)
+		}
+		if len(p.NewUserPassword1) == 0 {
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_UserPassword)
+		}
+		if !rc.pc.IsPasswordTextValid(p.NewUserPassword1) {
+			return nil, re.NewRpcError_FieldValueIsNotValid(rpc.Field_UserPassword)
+		}
+		if len(p.NewUserPassword2) == 0 {
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_UserPassword)
+		}
+		if !rc.pc.IsPasswordTextValid(p.NewUserPassword2) {
+			return nil, re.NewRpcError_FieldValueIsNotValid(rpc.Field_UserPassword)
+		}
+		if p.NewUserPassword1 != p.NewUserPassword2 {
+			return nil, re.NewRpcError_NewPasswordsAreDifferent(nil)
+		}
+
+		rpcErr = rc.checkShortStringsLen([]string{p.VerificationCode, p.RequestId})
+		if rpcErr != nil {
+			return nil, rpcErr
+		}
+	}
+
+	var user *usr.User
+	user, rpcErr = rc.getUserWithPassword(session)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	// Check password.
+	if p.UserPassword != user.Password.Text {
+		return nil, re.NewRpcError_UserIsNotFound(nil)
+	}
+	if (user.Password.Text == p.NewUserPassword1) || (user.Password.Text == p.NewUserPassword2) {
+		return nil, re.NewRpcError_NewPasswordMustDifferFromExisting(nil)
+	}
+
+	var pcr *rq.ChangePassword
+	// Check the verification code.
+	{
+		pcr = &rq.ChangePassword{RequestId: p.RequestId}
+		err := rc.db.FindPasswordChangeRequest(pcr)
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				// Fraud.
+				err = helper.SleepBeforeFraudResponse()
+				if err != nil {
+					return nil, re.NewRpcError_RequestIdGenerator(err)
+				}
+
+				return nil, re.NewRpcError_Failure(nil)
+			}
+
+			return nil, rc.der.DatabaseError(err)
+		}
+
+		if pcr.VerificationCode != p.VerificationCode {
+			err = helper.SleepBeforeReportingFailedVerificationCode()
+			if err != nil {
+				return nil, re.NewRpcError_RequestIdGenerator(err)
+			}
+
+			return nil, re.NewRpcError_Failure(nil)
+		}
+	}
+
+	// Fraud check.
+	if pcr.UserId != user.Id {
+		return nil, re.NewRpcError_UserIsNotFound(nil)
+	}
+
+	// Change the password.
+	{
+		err := rc.db.ChangeUserPassword(user, &p.NewUserPassword1)
+		if err != nil {
+			return nil, rc.der.DatabaseError(err)
+		}
+
+		err = rc.db.DeletePasswordChangeRequest(pcr)
+		if err != nil {
+			return nil, rc.der.DatabaseError(err)
+		}
+
+		// Log the user out.
+		rpcErr = rc.adc.StopExistingSession(session, p.Auth.Token)
+		if rpcErr != nil {
+			return nil, rpcErr
+		}
+
+		err = rc.mailer.SendPasswordChangeSuccess(user.EmailAddress)
+		if err != nil {
+			return nil, re.NewRpcError_MailerError(err)
+		}
+	}
+
+	// Events' report.
+	{
+		// 1. 'Password-change' event.
+		{
+			event := &ev.Event{
+				ActorId:      session.UserId,
+				Type:         enum.EventType_UserChangePassword,
+				TargetUserId: nil,
+			}
+
+			err := rc.db.CreateEvent(event)
+			if err != nil {
+				return nil, rc.der.DatabaseError(err)
+			}
+		}
+
+		// 2. 'Log-out' event.
+		{
+			event := &ev.Event{
+				ActorId:      session.UserId,
+				Type:         enum.EventType_UserLogOut,
+				TargetUserId: nil,
+			}
+
+			err := rc.db.CreateEvent(event)
+			if err != nil {
+				return nil, rc.der.DatabaseError(err)
+			}
+		}
+	}
+
+	return &rqrp.ChangePassword2Result{}, nil
+}
+func (rc *RpcController) BanUser(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
+	var p *rqrp.BanUserParams
+	rpcErr = jrm1.ParseParameters(params, &p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	var r *rqrp.BanUserResult
+	r, rpcErr = rc.banUser(p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	return r, nil
+}
+func (rc *RpcController) banUser(p *rqrp.BanUserParams) (result *rqrp.BanUserResult, rpcErr *jrm1.RpcError) {
+	var session *ses.Session
+	session, rpcErr = rc.getUserSession(p.Auth)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	session.TouchLastActivityTime()
+
+	var user *usr.User
+	user, rpcErr = rc.getUserBySession(session)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	// Check permissions.
+	{
+		if !rc.chatUserSettings.IsUserAdministrator(user.Id) {
+			return nil, re.NewRpcError_ActionIsNotPermitted(nil)
+		}
+	}
+
+	// Check input data.
+	{
+		if p.UserId == 0 {
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_UserId)
+		}
+		if p.UserId == user.Id {
+			return nil, re.NewRpcError_CanNotBanOneself(nil)
+		}
+	}
+
+	// Does target user exist ?
+	{
+		targetUserExists, err := rc.db.ExistsUserWithId(&usr.User{Id: p.UserId})
+		if err != nil {
+			return nil, rc.der.DatabaseError(err)
+		}
+
+		if !targetUserExists {
+			return nil, re.NewRpcError_UserIsNotFound(nil)
+		}
+	}
+
+	var sessionWasFound bool
+
+	// Ban the user, close the session.
+	{
+		var targetUser = &usr.User{Id: p.UserId}
+
+		err := rc.db.BanUserById(targetUser)
+		if err != nil {
+			return nil, rc.der.DatabaseError(err)
+		}
+
+		// Log the user out, if session exists.
+		sessionWasFound, rpcErr = rc.adc.StopUserSessionIfExists(targetUser.Id)
+		if rpcErr != nil {
+			return nil, rpcErr
+		}
+	}
+
+	// Events' report.
+	{
+		// 1. 'Ban' event.
+		{
+			event := &ev.Event{
+				ActorId:      user.Id,
+				Type:         enum.EventType_UserBan,
+				TargetUserId: &p.UserId,
+			}
+
+			err := rc.db.CreateEvent(event)
+			if err != nil {
+				return nil, rc.der.DatabaseError(err)
+			}
+		}
+
+		// 2. 'Log-out' event.
+		{
+			if sessionWasFound {
+				event := &ev.Event{
+					ActorId:      user.Id,
+					Type:         enum.EventType_UserLogOut,
+					TargetUserId: &p.UserId,
+				}
+
+				err := rc.db.CreateEvent(event)
+				if err != nil {
+					return nil, rc.der.DatabaseError(err)
+				}
+			}
+		}
+	}
+
+	return &rqrp.BanUserResult{}, nil
+}
+func (rc *RpcController) IsMeAdministrator(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
+	var p *rqrp.IsMeAdministratorParams
+	rpcErr = jrm1.ParseParameters(params, &p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	var r *rqrp.IsMeAdministratorResult
+	r, rpcErr = rc.isMeAdministrator(p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	return r, nil
+}
+func (rc *RpcController) isMeAdministrator(p *rqrp.IsMeAdministratorParams) (result *rqrp.IsMeAdministratorResult, rpcErr *jrm1.RpcError) {
+	var session *ses.Session
+	session, rpcErr = rc.getUserSession(p.Auth)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	result = &rqrp.IsMeAdministratorResult{
+		IsAdministrator: rc.chatUserSettings.IsUserAdministrator(session.UserId),
+	}
+	return result, nil
+}
+
+// Room functions.
+
+func (rc *RpcController) AddRoom(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
+	var p *rqrp.AddRoomParams
+	rpcErr = jrm1.ParseParameters(params, &p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	var r *rqrp.AddRoomResult
+	r, rpcErr = rc.addRoom(p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	return r, nil
+}
+func (rc *RpcController) addRoom(p *rqrp.AddRoomParams) (result *rqrp.AddRoomResult, rpcErr *jrm1.RpcError) {
+	var session *ses.Session
+	session, rpcErr = rc.getUserSession(p.Auth)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	session.TouchLastActivityTime()
+
+	var user *usr.User
+	user, rpcErr = rc.getUserBySession(session)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	// Check permissions.
+	{
+		if !rc.chatUserSettings.IsUserAdministrator(user.Id) {
+			return nil, re.NewRpcError_ActionIsNotPermitted(nil)
+		}
+	}
+
+	// Check input data.
+	{
+		if p.RoomType == 0 {
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_RoomType)
+		}
+		if len(p.RoomName) == 0 {
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_RoomName)
+		}
+	}
+
+	// Add a room.
+	{
+		var roomId common.ObjectId
+		roomId, rpcErr = rc.adc.AddRoom(p.RoomType, p.RoomName)
+		if rpcErr != nil {
+			return nil, rpcErr
+		}
+
+		result = &rqrp.AddRoomResult{
+			RoomId: roomId,
+		}
+	}
+
+	// Event report.
+	{
+		event := &ev.Event{
+			ActorId:      user.Id,
+			Type:         enum.EventType_RoomCreation,
+			TargetUserId: nil,
+		}
+
+		err := rc.db.CreateEvent(event)
+		if err != nil {
+			return nil, rc.der.DatabaseError(err)
+		}
+	}
+
+	return result, nil
+}
+func (rc *RpcController) DeleteRoom(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
+	var p *rqrp.DeleteRoomParams
+	rpcErr = jrm1.ParseParameters(params, &p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	var r *rqrp.DeleteRoomResult
+	r, rpcErr = rc.deleteRoom(p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	return r, nil
+}
+func (rc *RpcController) deleteRoom(p *rqrp.DeleteRoomParams) (result *rqrp.DeleteRoomResult, rpcErr *jrm1.RpcError) {
+	var session *ses.Session
+	session, rpcErr = rc.getUserSession(p.Auth)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	session.TouchLastActivityTime()
+
+	var user *usr.User
+	user, rpcErr = rc.getUserBySession(session)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	// Check permissions.
+	{
+		if !rc.chatUserSettings.IsUserAdministrator(user.Id) {
+			return nil, re.NewRpcError_ActionIsNotPermitted(nil)
+		}
+	}
+
+	// Check input data.
+	{
+		if p.RoomId == 0 {
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_RoomId)
+		}
+	}
+
+	// Delete a room.
+	{
+		rpcErr = rc.adc.DeleteExistingRoom(p.RoomId)
+		if rpcErr != nil {
+			return nil, rpcErr
+		}
+	}
+
+	// Event report.
+	{
+		event := &ev.Event{
+			ActorId:      user.Id,
+			Type:         enum.EventType_RoomDeletion,
+			TargetUserId: nil,
+		}
+
+		err := rc.db.CreateEvent(event)
+		if err != nil {
+			return nil, rc.der.DatabaseError(err)
+		}
+	}
+
+	return &rqrp.DeleteRoomResult{}, nil
+}
+func (rc *RpcController) ListRooms(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
+	var p *rqrp.ListRoomsParams
+	rpcErr = jrm1.ParseParameters(params, &p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	var r *rqrp.ListRoomsResult
+	r, rpcErr = rc.listRooms(p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	return r, nil
+}
+func (rc *RpcController) listRooms(p *rqrp.ListRoomsParams) (result *rqrp.ListRoomsResult, rpcErr *jrm1.RpcError) {
+	var session *ses.Session
+	session, rpcErr = rc.getUserSession(p.Auth)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	session.TouchLastActivityTime()
+
+	// Perform an action.
+	{
+		var rooms []*rm.RoomForList
+		rooms, rpcErr = rc.adc.ListRooms()
+		if rpcErr != nil {
+			return nil, rpcErr
+		}
+
+		result = &rqrp.ListRoomsResult{Rooms: rooms}
+	}
+
+	return result, nil
+}
+
+// Room Moderator functions.
+
+func (rc *RpcController) AddRoomModerator(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
+	var p *rqrp.AddRoomModeratorParams
+	rpcErr = jrm1.ParseParameters(params, &p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	var r *rqrp.AddRoomModeratorResult
+	r, rpcErr = rc.addRoomModerator(p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	return r, nil
+}
+func (rc *RpcController) addRoomModerator(p *rqrp.AddRoomModeratorParams) (result *rqrp.AddRoomModeratorResult, rpcErr *jrm1.RpcError) {
+	var session *ses.Session
+	session, rpcErr = rc.getUserSession(p.Auth)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	session.TouchLastActivityTime()
+
+	var user *usr.User
+	user, rpcErr = rc.getUserBySession(session)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	// Check permissions.
+	{
+		if !rc.chatUserSettings.IsUserAdministrator(user.Id) {
+			return nil, re.NewRpcError_ActionIsNotPermitted(nil)
+		}
+	}
+
+	// Check input data.
+	{
+		if p.RoomId == 0 {
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_RoomId)
+		}
+		if p.UserId == 0 {
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_UserId)
+		}
+	}
+
+	// Perform an action.
+	{
+		rpcErr = rc.adc.AddRoomModerator(p.RoomId, p.UserId)
+		if rpcErr != nil {
+			return nil, rpcErr
+		}
+	}
+
+	// Event report.
+	{
+		event := &ev.Event{
+			ActorId:      user.Id,
+			Type:         enum.EventType_RoomModeratorAddition,
+			TargetUserId: &p.UserId,
+		}
+
+		err := rc.db.CreateEvent(event)
+		if err != nil {
+			return nil, rc.der.DatabaseError(err)
+		}
+	}
+
+	return &rqrp.AddRoomModeratorResult{}, nil
+}
+func (rc *RpcController) DeleteRoomModerator(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
+	var p *rqrp.DeleteRoomModeratorParams
+	rpcErr = jrm1.ParseParameters(params, &p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	var r *rqrp.DeleteRoomModeratorResult
+	r, rpcErr = rc.deleteRoomModerator(p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	return r, nil
+}
+func (rc *RpcController) deleteRoomModerator(p *rqrp.DeleteRoomModeratorParams) (result *rqrp.DeleteRoomModeratorResult, rpcErr *jrm1.RpcError) {
+	var session *ses.Session
+	session, rpcErr = rc.getUserSession(p.Auth)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	session.TouchLastActivityTime()
+
+	var user *usr.User
+	user, rpcErr = rc.getUserBySession(session)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	// Check permissions.
+	{
+		if !rc.chatUserSettings.IsUserAdministrator(user.Id) {
+			return nil, re.NewRpcError_ActionIsNotPermitted(nil)
+		}
+	}
+
+	// Check input data.
+	{
+		if p.RoomId == 0 {
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_RoomId)
+		}
+		if p.UserId == 0 {
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_UserId)
+		}
+	}
+
+	// Perform an action.
+	{
+		rpcErr = rc.adc.DeleteRoomModerator(p.RoomId, p.UserId)
+		if rpcErr != nil {
+			return nil, rpcErr
+		}
+	}
+
+	// Event report.
+	{
+		event := &ev.Event{
+			ActorId:      user.Id,
+			Type:         enum.EventType_RoomModeratorDeletion,
+			TargetUserId: &p.UserId,
+		}
+
+		err := rc.db.CreateEvent(event)
+		if err != nil {
+			return nil, rc.der.DatabaseError(err)
+		}
+	}
+
+	return &rqrp.DeleteRoomModeratorResult{}, nil
+}
+func (rc *RpcController) ListRoomModerators(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
+	var p *rqrp.ListRoomModeratorsParams
+	rpcErr = jrm1.ParseParameters(params, &p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	var r *rqrp.ListRoomModeratorsResult
+	r, rpcErr = rc.listRoomModerators(p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	return r, nil
+}
+func (rc *RpcController) listRoomModerators(p *rqrp.ListRoomModeratorsParams) (result *rqrp.ListRoomModeratorsResult, rpcErr *jrm1.RpcError) {
+	var session *ses.Session
+	session, rpcErr = rc.getUserSession(p.Auth)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	session.TouchLastActivityTime()
+
+	var user *usr.User
+	user, rpcErr = rc.getUserBySession(session)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	// Check permissions.
+	{
+		if !rc.chatUserSettings.IsUserAdministrator(user.Id) {
+			return nil, re.NewRpcError_ActionIsNotPermitted(nil)
+		}
+	}
+
+	// Check input data.
+	{
+		if p.RoomId == 0 {
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_RoomId)
+		}
+	}
+
+	// Perform an action.
+	{
+		var userIds []common.ObjectId
+		userIds, rpcErr = rc.adc.ListRoomModerators(p.RoomId)
+		if rpcErr != nil {
+			return nil, rpcErr
+		}
+
+		result = &rqrp.ListRoomModeratorsResult{
+			RoomId:  p.RoomId,
+			UserIds: userIds,
+		}
+	}
+
+	return result, nil
+}
+func (rc *RpcController) ResetRoomModerators(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
+	var p *rqrp.ResetRoomModeratorsParams
+	rpcErr = jrm1.ParseParameters(params, &p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	var r *rqrp.ResetRoomModeratorsResult
+	r, rpcErr = rc.resetRoomModerators(p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	return r, nil
+}
+func (rc *RpcController) resetRoomModerators(p *rqrp.ResetRoomModeratorsParams) (result *rqrp.ResetRoomModeratorsResult, rpcErr *jrm1.RpcError) {
+	var session *ses.Session
+	session, rpcErr = rc.getUserSession(p.Auth)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	session.TouchLastActivityTime()
+
+	var user *usr.User
+	user, rpcErr = rc.getUserBySession(session)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	// Check permissions.
+	{
+		if !rc.chatUserSettings.IsUserAdministrator(user.Id) {
+			return nil, re.NewRpcError_ActionIsNotPermitted(nil)
+		}
+	}
+
+	// Check input data.
+	{
+		if p.RoomId == 0 {
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_RoomId)
+		}
+	}
+
+	// Perform an action.
+	{
+		rpcErr = rc.adc.ResetRoomModerators(p.RoomId)
+		if rpcErr != nil {
+			return nil, rpcErr
+		}
+	}
+
+	// Event report.
+	{
+		event := &ev.Event{
+			ActorId:      user.Id,
+			Type:         enum.EventType_RoomModeratorsReset,
+			TargetUserId: nil,
+		}
+
+		err := rc.db.CreateEvent(event)
+		if err != nil {
+			return nil, rc.der.DatabaseError(err)
+		}
+	}
+
+	return &rqrp.ResetRoomModeratorsResult{}, nil
+}
+
+// Allowed Room User functions.
+
+func (rc *RpcController) AddAllowedRoomUser(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
+	var p *rqrp.AddAllowedRoomUserParams
+	rpcErr = jrm1.ParseParameters(params, &p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	var r *rqrp.AddAllowedRoomUserResult
+	r, rpcErr = rc.addAllowedRoomUser(p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	return r, nil
+}
+func (rc *RpcController) addAllowedRoomUser(p *rqrp.AddAllowedRoomUserParams) (result *rqrp.AddAllowedRoomUserResult, rpcErr *jrm1.RpcError) {
+	var session *ses.Session
+	session, rpcErr = rc.getUserSession(p.Auth)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	session.TouchLastActivityTime()
+
+	// Check input data.
+	{
+		if p.RoomId == 0 {
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_RoomId)
+		}
+		if p.UserId == 0 {
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_UserId)
+		}
+	}
+
+	// Check permissions.
+	{
+		var isModerator bool
+		isModerator, rpcErr = rc.adc.IsUserModerator(p.RoomId, session.UserId)
+		if rpcErr != nil {
+			return nil, rpcErr
+		}
+
+		if !isModerator {
+			return nil, re.NewRpcError_ActionIsNotPermitted(nil)
+		}
+	}
+
+	// Perform an action.
+	{
+		rpcErr = rc.adc.AddAllowedRoomUser(session.UserId, p.RoomId, p.UserId)
+		if rpcErr != nil {
+			return nil, rpcErr
+		}
+	}
+
+	// Event report.
+	{
+		event := &ev.Event{
+			ActorId:      session.UserId,
+			Type:         enum.EventType_RoomAllowedUserAddition,
+			TargetUserId: &p.UserId,
+		}
+
+		err := rc.db.CreateEvent(event)
+		if err != nil {
+			return nil, rc.der.DatabaseError(err)
+		}
+	}
+
+	return &rqrp.AddAllowedRoomUserResult{}, nil
+}
+func (rc *RpcController) DeleteAllowedRoomUser(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
+	var p *rqrp.DeleteAllowedRoomUserParams
+	rpcErr = jrm1.ParseParameters(params, &p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	var r *rqrp.DeleteAllowedRoomUserResult
+	r, rpcErr = rc.deleteAllowedRoomUser(p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	return r, nil
+}
+func (rc *RpcController) deleteAllowedRoomUser(p *rqrp.DeleteAllowedRoomUserParams) (result *rqrp.DeleteAllowedRoomUserResult, rpcErr *jrm1.RpcError) {
+	var session *ses.Session
+	session, rpcErr = rc.getUserSession(p.Auth)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	session.TouchLastActivityTime()
+
+	// Check input data.
+	{
+		if p.RoomId == 0 {
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_RoomId)
+		}
+		if p.UserId == 0 {
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_UserId)
+		}
+	}
+
+	// Check permissions.
+	{
+		var isModerator bool
+		isModerator, rpcErr = rc.adc.IsUserModerator(p.RoomId, session.UserId)
+		if rpcErr != nil {
+			return nil, rpcErr
+		}
+
+		if !isModerator {
+			return nil, re.NewRpcError_ActionIsNotPermitted(nil)
+		}
+	}
+
+	// Perform an action.
+	{
+		rpcErr = rc.adc.DeleteAllowedRoomUser(session.UserId, p.RoomId, p.UserId)
+		if rpcErr != nil {
+			return nil, rpcErr
+		}
+	}
+
+	// Event report.
+	{
+		event := &ev.Event{
+			ActorId:      session.UserId,
+			Type:         enum.EventType_RoomAllowedUserDeletion,
+			TargetUserId: &p.UserId,
+		}
+
+		err := rc.db.CreateEvent(event)
+		if err != nil {
+			return nil, rc.der.DatabaseError(err)
+		}
+	}
+
+	return &rqrp.DeleteAllowedRoomUserResult{}, nil
+}
+func (rc *RpcController) ListAllowedRoomUsers(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
+	var p *rqrp.ListAllowedRoomUsersParams
+	rpcErr = jrm1.ParseParameters(params, &p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	var r *rqrp.ListAllowedRoomUsersResult
+	r, rpcErr = rc.listAllowedRoomUsers(p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	return r, nil
+}
+func (rc *RpcController) listAllowedRoomUsers(p *rqrp.ListAllowedRoomUsersParams) (result *rqrp.ListAllowedRoomUsersResult, rpcErr *jrm1.RpcError) {
+	var session *ses.Session
+	session, rpcErr = rc.getUserSession(p.Auth)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	session.TouchLastActivityTime()
+
+	// Check input data.
+	{
+		if p.RoomId == 0 {
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_RoomId)
+		}
+	}
+
+	// Check permissions.
+	{
+		var isModerator bool
+		isModerator, rpcErr = rc.adc.IsUserModerator(p.RoomId, session.UserId)
+		if rpcErr != nil {
+			return nil, rpcErr
+		}
+
+		if !isModerator {
+			return nil, re.NewRpcError_ActionIsNotPermitted(nil)
+		}
+	}
+
+	// Perform an action.
+	{
+		var userIds []common.ObjectId
+		userIds, rpcErr = rc.adc.ListAllowedRoomUsers(session.UserId, p.RoomId)
+		if rpcErr != nil {
+			return nil, rpcErr
+		}
+
+		result = &rqrp.ListAllowedRoomUsersResult{
+			RoomId:  p.RoomId,
+			UserIds: userIds,
+		}
+	}
+
+	return result, nil
+}
+func (rc *RpcController) ResetAllowedRoomUsers(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
+	var p *rqrp.ResetAllowedRoomUsersParams
+	rpcErr = jrm1.ParseParameters(params, &p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	var r *rqrp.ResetAllowedRoomUsersResult
+	r, rpcErr = rc.resetAllowedRoomUsers(p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	return r, nil
+}
+func (rc *RpcController) resetAllowedRoomUsers(p *rqrp.ResetAllowedRoomUsersParams) (result *rqrp.ResetAllowedRoomUsersResult, rpcErr *jrm1.RpcError) {
+	var session *ses.Session
+	session, rpcErr = rc.getUserSession(p.Auth)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	session.TouchLastActivityTime()
+
+	// Check input data.
+	{
+		if p.RoomId == 0 {
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_RoomId)
+		}
+	}
+
+	// Check permissions.
+	{
+		var isModerator bool
+		isModerator, rpcErr = rc.adc.IsUserModerator(p.RoomId, session.UserId)
+		if rpcErr != nil {
+			return nil, rpcErr
+		}
+
+		if !isModerator {
+			return nil, re.NewRpcError_ActionIsNotPermitted(nil)
+		}
+	}
+
+	// Perform an action.
+	{
+		rpcErr = rc.adc.ResetAllowedRoomUsers(session.UserId, p.RoomId)
+		if rpcErr != nil {
+			return nil, rpcErr
+		}
+	}
+
+	// Event report.
+	{
+		event := &ev.Event{
+			ActorId:      session.UserId,
+			Type:         enum.EventType_RoomAllowedUserReset,
+			TargetUserId: nil,
+		}
+
+		err := rc.db.CreateEvent(event)
+		if err != nil {
+			return nil, rc.der.DatabaseError(err)
+		}
+	}
+
+	return &rqrp.ResetAllowedRoomUsersResult{}, nil
+}
+
+// User Room functions.
+
+func (rc *RpcController) EnterRoom(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
+	var p *rqrp.EnterRoomParams
+	rpcErr = jrm1.ParseParameters(params, &p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	var r *rqrp.EnterRoomResult
+	r, rpcErr = rc.enterRoom(p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	return r, nil
+}
+func (rc *RpcController) enterRoom(p *rqrp.EnterRoomParams) (result *rqrp.EnterRoomResult, rpcErr *jrm1.RpcError) {
+	var session *ses.Session
+	session, rpcErr = rc.getUserSession(p.Auth)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	session.TouchLastActivityTime()
+
+	// Check input data.
+	{
+		if p.RoomId == 0 {
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_RoomId)
+		}
+	}
+
+	// Perform an action.
+	{
+		rpcErr = rc.adc.PutUserIntoRoom(session.UserId, p.RoomId)
+		if rpcErr != nil {
+			return nil, rpcErr
+		}
+	}
+
+	return &rqrp.EnterRoomResult{}, nil
+}
+func (rc *RpcController) LeaveRoom(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
+	var p *rqrp.LeaveRoomParams
+	rpcErr = jrm1.ParseParameters(params, &p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	var r *rqrp.LeaveRoomResult
+	r, rpcErr = rc.leaveRoom(p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	return r, nil
+}
+func (rc *RpcController) leaveRoom(p *rqrp.LeaveRoomParams) (result *rqrp.LeaveRoomResult, rpcErr *jrm1.RpcError) {
+	var session *ses.Session
+	session, rpcErr = rc.getUserSession(p.Auth)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	session.TouchLastActivityTime()
+
+	// Check input data.
+	{
+		if p.RoomId == 0 {
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_RoomId)
+		}
+	}
+
+	// Perform an action.
+	{
+		rpcErr = rc.adc.RemoveUserFromRoom(session.UserId, p.RoomId)
+		if rpcErr != nil {
+			return nil, rpcErr
+		}
+	}
+
+	return &rqrp.LeaveRoomResult{}, nil
+}
+func (rc *RpcController) GetMyRoomId(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
+	var p *rqrp.GetMyRoomIdParams
+	rpcErr = jrm1.ParseParameters(params, &p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	var r *rqrp.GetMyRoomIdResult
+	r, rpcErr = rc.getMyRoomId(p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	return r, nil
+}
+func (rc *RpcController) getMyRoomId(p *rqrp.GetMyRoomIdParams) (result *rqrp.GetMyRoomIdResult, rpcErr *jrm1.RpcError) {
+	var session *ses.Session
+	session, rpcErr = rc.getUserSession(p.Auth)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	session.TouchLastActivityTime()
+
+	// Perform an action.
+	{
+		var roomId *common.ObjectId
+		roomId, rpcErr = rc.adc.GetUserRoomId(session.UserId)
+		if rpcErr != nil {
+			return nil, rpcErr
+		}
+
+		result = &rqrp.GetMyRoomIdResult{
+			UserId: session.UserId,
+			RoomId: roomId,
+		}
+	}
+
+	return result, nil
+}
+func (rc *RpcController) GetRoom(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
+	var p *rqrp.GetRoomParams
+	rpcErr = jrm1.ParseParameters(params, &p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	var r *rqrp.GetRoomResult
+	r, rpcErr = rc.getRoom(p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	return r, nil
+}
+func (rc *RpcController) getRoom(p *rqrp.GetRoomParams) (result *rqrp.GetRoomResult, rpcErr *jrm1.RpcError) {
+	var session *ses.Session
+	session, rpcErr = rc.getUserSession(p.Auth)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	session.TouchLastActivityTime()
+
+	// Check input data.
+	{
+		if p.RoomId == 0 {
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_RoomId)
+		}
+	}
+
+	// Perform an action.
+	{
+		var room *rm.Room
+		room, rpcErr = rc.adc.GetRoom(session.UserId, p.RoomId)
+		if rpcErr != nil {
+			return nil, rpcErr
+		}
+
+		result = &rqrp.GetRoomResult{Room: room}
+	}
+
+	return result, nil
+}
+func (rc *RpcController) GetRoomUsers(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
+	var p *rqrp.GetRoomUsersParams
+	rpcErr = jrm1.ParseParameters(params, &p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	var r *rqrp.GetRoomUsersResult
+	r, rpcErr = rc.getRoomUsers(p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	return r, nil
+}
+func (rc *RpcController) getRoomUsers(p *rqrp.GetRoomUsersParams) (result *rqrp.GetRoomUsersResult, rpcErr *jrm1.RpcError) {
+	var session *ses.Session
+	session, rpcErr = rc.getUserSession(p.Auth)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	session.TouchLastActivityTime()
+
+	// Check input data.
+	{
+		if p.RoomId == 0 {
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_RoomId)
+		}
+	}
+
+	// Perform an action.
+	{
+		var activeUserIds []common.ObjectId
+		activeUserIds, rpcErr = rc.adc.GetRoomUsers(p.RoomId)
+		if rpcErr != nil {
+			return nil, rpcErr
+		}
+
+		result = &rqrp.GetRoomUsersResult{
+			RoomId:        p.RoomId,
+			ActiveUserIds: activeUserIds,
+		}
+	}
+
+	return result, nil
+}
+
+// Message functions.
+
+func (rc *RpcController) AddMessage(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
+	var p *rqrp.AddMessageParams
+	rpcErr = jrm1.ParseParameters(params, &p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	var r *rqrp.AddMessageResult
+	r, rpcErr = rc.addMessage(p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	return r, nil
+}
+func (rc *RpcController) addMessage(p *rqrp.AddMessageParams) (result *rqrp.AddMessageResult, rpcErr *jrm1.RpcError) {
+	var session *ses.Session
+	session, rpcErr = rc.getUserSession(p.Auth)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	session.TouchLastActivityTime()
+
+	// Check input data.
+	{
+		if p.RoomId == 0 {
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_RoomId)
+		}
+		if len(p.MessageText) == 0 {
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_MessageText)
+		}
+	}
+
+	// Perform an action.
+	{
+		rpcErr = rc.adc.AddMessageIntoRoom(p.RoomId, session.UserId, p.MessageText)
+		if rpcErr != nil {
+			return nil, rpcErr
+		}
+	}
+
+	return &rqrp.AddMessageResult{}, nil
+}
+func (rc *RpcController) ListAllMessages(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
+	var p *rqrp.ListAllMessagesParams
+	rpcErr = jrm1.ParseParameters(params, &p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	var r *rqrp.ListAllMessagesResult
+	r, rpcErr = rc.listAllMessages(p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	return r, nil
+}
+func (rc *RpcController) listAllMessages(p *rqrp.ListAllMessagesParams) (result *rqrp.ListAllMessagesResult, rpcErr *jrm1.RpcError) {
+	var session *ses.Session
+	session, rpcErr = rc.getUserSession(p.Auth)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	session.TouchLastActivityTime()
+
+	// Check input data.
+	{
+		if p.RoomId == 0 {
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_RoomId)
+		}
+	}
+
+	// Perform an action.
+	{
+		var rawMsgs []*msg.Message
+		var nowTS int64
+		rawMsgs, nowTS, rpcErr = rc.adc.ListAllMessagesInRoom(p.RoomId, session.UserId)
+		if rpcErr != nil {
+			return nil, rpcErr
+		}
+
+		sstts := rc.adc.GetServerStartTimeTS()
+
+		result = &rqrp.ListAllMessagesResult{Messages: lom.NewListOfMessages(p.RoomId, rawMsgs, nowTS, sstts, nil)}
+	}
+
+	return result, nil
+}
+func (rc *RpcController) ListMessagesSince(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
+	var p *rqrp.ListMessagesSinceParams
+	rpcErr = jrm1.ParseParameters(params, &p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	var r *rqrp.ListMessagesSinceResult
+	r, rpcErr = rc.listMessagesSince(p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	return r, nil
+}
+func (rc *RpcController) listMessagesSince(p *rqrp.ListMessagesSinceParams) (result *rqrp.ListMessagesSinceResult, rpcErr *jrm1.RpcError) {
+	var session *ses.Session
+	session, rpcErr = rc.getUserSession(p.Auth)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	session.TouchLastActivityTime()
+
+	// Check input data.
+	{
+		if p.RoomId == 0 {
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_RoomId)
+		}
+		if p.TimeMarkTS == 0 {
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_TimeMarkTS)
+		}
+	}
+
+	// Perform an action.
+	{
+		var rawMsgs []*msg.Message
+		var nowTS int64
+		rawMsgs, nowTS, rpcErr = rc.adc.ListMessagesInRoomSince(p.RoomId, session.UserId, p.TimeMarkTS)
+		if rpcErr != nil {
+			return nil, rpcErr
+		}
+
+		sstts := rc.adc.GetServerStartTimeTS()
+
+		result = &rqrp.ListMessagesSinceResult{Messages: lom.NewListOfMessages(p.RoomId, rawMsgs, nowTS, sstts, &p.TimeMarkTS)}
+	}
+
+	return result, nil
+}
+
+// User functions.
+
+func (rc *RpcController) GetUser(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
+	var p *rqrp.GetUserParams
+	rpcErr = jrm1.ParseParameters(params, &p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	var r *rqrp.GetUserResult
+	r, rpcErr = rc.getUser(p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	return r, nil
+}
+func (rc *RpcController) getUser(p *rqrp.GetUserParams) (result *rqrp.GetUserResult, rpcErr *jrm1.RpcError) {
+	var session *ses.Session
+	session, rpcErr = rc.getUserSession(p.Auth)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	session.TouchLastActivityTime()
+
+	// Get level of permissions.
+	var isCallerAdministrator = rc.chatUserSettings.IsUserAdministrator(session.UserId)
+
+	// Check input data.
+	{
+		if p.UserId == 0 {
+			return nil, re.NewRpcError_FieldNotSet(rpc.Field_UserId)
+		}
+	}
+
+	// Perform an action.
+	{
+		var u = &usr.User{Id: p.UserId}
+		err := rc.db.GetUserById(u)
+		if err != nil {
+			return nil, re.NewRpcError_DatabaseError(err)
+		}
+
+		result = &rqrp.GetUserResult{User: usr.NewUser2(u, isCallerAdministrator)}
+	}
+
+	return result, nil
+}
+func (rc *RpcController) ListUsers(params *json.RawMessage, _ *jrm1.ResponseMetaData) (result any, rpcErr *jrm1.RpcError) {
+	var p *rqrp.ListUsersParams
+	rpcErr = jrm1.ParseParameters(params, &p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	var r *rqrp.ListUsersResult
+	r, rpcErr = rc.listUsers(p)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	return r, nil
+}
+func (rc *RpcController) listUsers(p *rqrp.ListUsersParams) (result *rqrp.ListUsersResult, rpcErr *jrm1.RpcError) {
+	var session *ses.Session
+	session, rpcErr = rc.getUserSession(p.Auth)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	session.TouchLastActivityTime()
+
+	// Get level of permissions.
+	var isCallerAdministrator = rc.chatUserSettings.IsUserAdministrator(session.UserId)
+
+	// Check input data.
+	{
+		if (p.PageSize < 1) || (p.PageSize > rc.pageSizeMax) {
+			return nil, re.NewRpcError_FieldValueIsNotValid(rpc.Field_PageSize)
+		}
+		if p.PageNumber < 1 {
+			return nil, re.NewRpcError_FieldValueIsNotValid(rpc.Field_PageNumber)
+		}
+	}
+
+	// Perform an action.
+	{
+		nAll, err := rc.db.CountAllUsers()
+		if err != nil {
+			return nil, re.NewRpcError_DatabaseError(err)
+		}
+
+		var users []*usr.User
+		users, err = rc.db.ListUsers(p.PageSize, p.PageNumber)
+		if err != nil {
+			return nil, re.NewRpcError_DatabaseError(err)
+		}
+
+		result = &rqrp.ListUsersResult{
+			PageSize:   p.PageSize,
+			PageNumber: p.PageNumber,
+			TotalPages: int(math.Ceil(float64(nAll) / float64(p.PageSize))),
+			TotalItems: nAll,
+			Items:      len(users),
+			Users:      usr.NewUsers2(users, isCallerAdministrator),
+		}
+	}
+
+	return result, nil
+}
+
+// Helper functions.
+func (rc *RpcController) getUserSession(auth *rpc.Auth) (session *ses.Session, rpcErr *jrm1.RpcError) {
+	if auth == nil {
+		return nil, re.NewRpcError_NotAuthorised(nil)
+	}
+
+	if len(auth.Token) == 0 {
+		return nil, re.NewRpcError_FieldNotSet(rpc.Field_AuthToken)
+	}
+
+	session, rpcErr = rc.adc.GetUserSession(auth.Token)
+	if rpcErr != nil {
+		return nil, rpcErr
+	}
+
+	return session, nil
+}
+func (rc *RpcController) getUserBySession(session *ses.Session) (user *usr.User, rpcErr *jrm1.RpcError) {
+	user = &usr.User{Id: session.UserId}
+	err := rc.db.GetUserById(user)
+	if err != nil {
+		return nil, rc.der.DatabaseError(err)
+	}
+
+	if session.UserId != user.Id {
+		return nil, re.NewRpcError_UserIsNotFound(nil)
+	}
+
+	return user, nil
+}
+func (rc *RpcController) getUserWithPassword(session *ses.Session) (user *usr.User, rpcErr *jrm1.RpcError) {
+	user = &usr.User{Id: session.UserId}
+	err := rc.db.GetUserWithPasswordById(user)
+	if err != nil {
+		return nil, rc.der.DatabaseError(err)
+	}
+
+	if session.UserId != user.Id {
+		return nil, re.NewRpcError_UserIsNotFound(nil)
+	}
+
+	if user.Password == nil {
+		return nil, re.NewRpcError_UserIsNotFound(nil)
+	}
+
+	return user, nil
+}
+func (rc *RpcController) checkShortStringsLen(ss []string) (rpcErr *jrm1.RpcError) {
+	for _, s := range ss {
+		if len(s) > ShortStringLenMax {
+			return re.NewRpcError_ShortStringIsTooLong(nil)
+		}
+	}
+
+	return nil
+}
